@@ -1,0 +1,117 @@
+/* ChessTrace board — light theme for chessground.
+   Chessground renders the board grid as a background on <cg-board>,
+   not as individual <square> elements. We paint a CSS checkerboard
+   gradient instead via the 64-div React grid in Board.jsx. */
+
+.ct-board-frame {
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 20px rgb(0, 0, 0, 0.03);
+  background: white;
+}
+
+.ct-board-frame cg-board {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Coordinates outside the board */
+.cg-wrap coords {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  font-size: 12px;
+}
+
+.cg-wrap coords.ranks {
+  left: -22px !important;
+  top: 0 !important;
+}
+.cg-wrap coords.ranks coord {
+  transform: translateY(39%) !important;
+}
+
+.cg-wrap coords.files {
+  bottom: -22px !important;
+  left: 0 !important;
+}
+
+/* Chessground creates dynamic <square> elements only for selections
+   and move destinations — these selectors are still valid. */
+square.selected {
+  background: rgba(89, 128, 150, 0.35) !important;
+}
+square.move-dest {
+  background: radial-gradient(rgba(89, 128, 150, 0.25) 22%, transparent 24%) !important;
+}
+
+/* Low-confidence squares from Phase 2 — dashed red outline */
+square.ct-lowconf::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 2px dashed #ef4444;
+  pointer-events: none;
+}
+
+/* ─── Chessground board square colors ─── */
+cg-board square.white {
+  background-color: #c7d5e0 !important;
+}
+cg-board square.black {
+  background-color: #598096 !important;
+}
+
+/* ─── Piece images ─── */
+cg-board piece.white.pawn {
+  background-image: url('./pieces/wp.png') !important;
+}
+cg-board piece.white.knight {
+  background-image: url('./pieces/wn.png') !important;
+}
+cg-board piece.white.bishop {
+  background-image: url('./pieces/wb.png') !important;
+}
+cg-board piece.white.rook {
+  background-image: url('./pieces/wr.png') !important;
+}
+cg-board piece.white.queen {
+  background-image: url('./pieces/wq.png') !important;
+}
+cg-board piece.white.king {
+  background-image: url('./pieces/wk.png') !important;
+}
+
+cg-board piece.black.pawn {
+  background-image: url('./pieces/bp.png') !important;
+}
+cg-board piece.black.knight {
+  background-image: url('./pieces/bn.png') !important;
+}
+cg-board piece.black.bishop {
+  background-image: url('./pieces/bb.png') !important;
+}
+cg-board piece.black.rook {
+  background-image: url('./pieces/br.png') !important;
+}
+cg-board piece.black.queen {
+  background-image: url('./pieces/bq.png') !important;
+}
+cg-board piece.black.king {
+  background-image: url('./pieces/bk.png') !important;
+}
+
+/* Ensure pieces are correctly sized inside chessground */
+cg-board piece {
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+}
+
+/* Right-click drawable arrows: tournament green theme */
+cg-board .cg-shapes svg .cg-arrow {
+  stroke: rgba(89, 128, 150, 0.75);
+}
+cg-board .cg-shapes svg .cg-circle {
+  stroke: rgba(89, 128, 150, 0.75);
+}
+

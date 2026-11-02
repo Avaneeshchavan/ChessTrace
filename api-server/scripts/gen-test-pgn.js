@@ -1,0 +1,24 @@
+const fs = require('fs');
+
+const singleGamePgn = `[Event "Rated Blitz game"]
+[Site "https://lichess.org/example"]
+[Date "2013.01.01"]
+[Round "-"]
+[White "PlayerA"]
+[Black "PlayerB"]
+[Result "1-0"]
+[WhiteElo "1500"]
+[BlackElo "1500"]
+[Termination "Normal"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Na5 10. Bc2 c5 11. d4 Qc7 12. Nbd2 cxd4 13. cxd4 Bd7 14. Nf1 Rac8 15. Ne3 Rfe8 16. b3 Bf8 17. Bb2 Nc6 18. Rc1 Qa5 19. a3 exd4 20. Nxd4 Nxd4 21. Qxd4 Bc6 22. b4 Qd8 23. Nd5 Bxd5 24. exd5 Rxe1+ 25. Rxe1 Rxc2 26. g4 h6 27. h4 Qd7 28. f3 Qc8 29. Kh1 Qc4 30. Qxc4 Rxc4 31. Bxf6 gxf6 32. Kg2 Rd4 33. Re3 Rxd5 34. f4 f5 35. g5 hxg5 36. hxg5 Kg7 37. Kf3 Rd1 38. Ke2 Ra1 39. Rd3 Ra2+ 40. Ke3 Kg6 41. Kd4 Rf2 42. Ke3 Rh2 43. Kd4 Rh4 44. Rf3 Kh5 45. Kd5 Kg4 46. Rf1 Rh3 47. Kc6 Rxa3 48. Kd7 d5 49. Ke8 Bxb4 50. Kxf7 d4 51. g6 Rc3 52. g7 Rc7+ 53. Kf6 Rxg7 54. Kxg7 d3 55. Kf6 d2 56. Ke5 Bc3+ 57. Kd5 b4 58. Kc4 a5 59. Kb3 Kg3 60. Kc2 a4 61. Kd1 Kg2 62. Ke2 a3 63. Rf2+ Kg3 64. Rf3+ Kg4 65. Rf1 a2 66. Rg1+ Kxf4 1-0
+`;
+
+let pgnData = '';
+// Let's do 1000 games to get a measurable rate and memory snapshot
+for (let i = 0; i < 1000; i++) {
+  pgnData += singleGamePgn + '\n';
+}
+
+fs.writeFileSync('data/test.pgn', pgnData);
+console.log('Created 1000-game PGN file.');

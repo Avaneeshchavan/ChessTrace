@@ -1,0 +1,32 @@
+{
+  "name": "chesstrace-phase1",
+  "version": "0.1.0",
+  "description": "ChessTrace Phase 1 — database schema, ingestion pipeline, two-tier search core",
+  "main": "src/search.js",
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "ingest": "node scripts/ingest.js",
+    "ingest:gc": "node --expose-gc scripts/ingest.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.19.0",
+    "axios": "^1.20.0",
+    "bcrypt": "^6.0.0",
+    "chess.js": "^1.0.0-beta.8",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "prisma": "^5.19.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

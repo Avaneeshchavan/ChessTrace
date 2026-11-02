@@ -1,0 +1,14 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9   # required by FastAPI for UploadFile/form parsing
+opencv-python-headless>=4.9
+numpy>=1.26
+pillow>=10.0               # only used by scripts/generate_templates.py and the synthetic test-image generator
+python-chess>=1.10         # strict FEN validation (see app/pipeline/fen_validate.py)
+pytesseract>=0.3.10        # coordinate-label OCR for orientation detection
+# NOTE: pytesseract is a wrapper around the `tesseract` binary, which is a
+# separate system package (not installed via pip). On Debian/Ubuntu:
+#   apt-get install tesseract-ocr
+# Without it, orientation detection still works — it falls back to
+# White-at-bottom + orientation_method="default_no_labels_found" — but
+# will never auto-detect a flipped board from labels.

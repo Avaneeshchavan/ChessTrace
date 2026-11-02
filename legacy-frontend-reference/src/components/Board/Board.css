@@ -1,0 +1,57 @@
+/* ChessTrace board — dark theme override for chessground.
+   Chessground renders the board grid as a background on <cg-board>,
+   not as individual <square> elements. We paint a CSS checkerboard
+   gradient instead. */
+
+.ct-board-frame {
+  border: 1px solid var(--ct-border);
+  border-radius: var(--ct-radius-md);
+  box-shadow: var(--ct-shadow-panel);
+  background: var(--ct-surface);
+}
+
+.ct-board-frame cg-board {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Coordinates outside the board */
+.cg-wrap coords {
+  font-family: var(--ct-font-mono);
+  color: #4b6d85 !important;
+  font-weight: 600 !important;
+  font-size: 13px;
+}
+
+.cg-wrap coords.ranks {
+  left: -22px !important;
+  top: 0 !important;
+}
+.cg-wrap coords.ranks coord {
+  transform: translateY(39%) !important;
+}
+
+.cg-wrap coords.files {
+  bottom: -22px !important;
+  left: 0 !important;
+}
+
+/* Chessground creates dynamic <square> elements only for selections
+   and move destinations — these selectors are still valid. */
+square.selected {
+  background: var(--ct-board-select) !important;
+}
+square.move-dest {
+  background: radial-gradient(rgba(255, 255, 255, 0.15) 22%, transparent 24%) !important;
+}
+
+/* Low-confidence squares from Phase 2 — dashed red outline */
+square.ct-lowconf::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 2px dashed var(--ct-warning);
+  pointer-events: none;
+}
+
+

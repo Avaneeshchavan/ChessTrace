@@ -1,0 +1,134 @@
+// ChessTrace - Phase 1 Prisma schema
+//
+// NOTE ON pgvector + Prisma:
+// Prisma's `postgresqlExtensions` preview feature lets us declare that the
+// `vector` extension exists and lets us store a vector column via the
+// `Unsupported("vector(32)")` escape hatch (Prisma has no first-class vector
+// type yet). Prisma also cannot express an HNSW index with custom
+// parameters (m, ef_construction) in the schema DSL, so that index is
+// created by hand in prisma/migrations/0001_manual_vector_index/migration.sql
+// after running `prisma migrate dev`. See EXPLANATION.md, section 2.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  // CRITICAL: The production value MUST use Neon's pooled connection string 
+  // (hostname containing "-pooler"), not the direct connection string, 
+  // since Render's free-tier Node process plus Prisma's connection pool 
+  // can otherwise exhaust Neon's free-tier connection limit.
+  url        = env("DATABASE_URL") 
+  directUrl  = env("DIRECT_URL")   // unpooled connection, used only by `prisma migrate`
+  // Declares the extension so `prisma migrate` knows it's expected.
+  // The actual `CREATE EXTENSION` still needs superuser-ish privileges,
+  // which Neon grants by default on its free tier.
+  extensions = [vector]
+}
+
+model Game {
+  id         Int        @id @default(autoincrement())
+
+  whiteName  String
+  blackName  String
+  whiteElo   Int?
+  blackElo   Int?
+
+  playedAt   DateTime?  // parsed from PGN "Date" tag when possible; null if "????.??.??"
+  event      String?
+  result     String     // "1-0" | "0-1" | "1/2-1/2" | "*"
+
+  pgn        String     @db.Text // full original PGN text, kept verbatim for display/replay
+
+  positions  Position[]
+
+  createdAt  DateTime   @default(now())
+
+  // Cheap filters we'll want later (player search, event browsing).
+  // Not part of the search core, but essentially free to add now.
+  @@index([whiteName])
+  @@index([blackName])
+  @@index([event])
+}
+
+model Position {
+  // BigInt because 100k games * ~40 half-moves avg = ~4M rows; Int (max ~2.1B)
+  // would technically still fit, but BigInt costs nothing extra and removes
+  // any need to think about it again if the dataset grows 10x.
+  id       BigInt @id @default(autoincrement())
+
+  gameId   Int
+  game     Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  halfMove Int    // 1-indexed ply number within the game (1 = after White's 1st move)
+
+  // "fenCore" = FEN fields 1-3 only: piece placement, side to move, castling
+  // rights. Deliberately DROPS FEN fields 4-6 (en passant target square,
+  // halfmove clock, fullmove number). See EXPLANATION.md section 1 for why.
+  // Max realistic length is well under 90 chars
+  // (e.g. "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq" = 51 chars).
+  fenCore  String @db.VarChar(90)
+
+  // Fixed-length structural similarity signature. Nullable only so that
+  // ingestion can insert rows and backfill vectors in a second pass if
+  // ever needed; the ingestion script in this phase always fills it inline.
+  vector   Unsupported("vector(32)")?
+
+  // Tier 1 search: exact-match lookup. A hash index only supports `=`
+  // comparisons (not range/prefix), which is all we need here, and it's
+  // smaller and faster to build than a btree for this purpose.
+  @@index([fenCore], map: "idx_position_fencore_hash", type: Hash)
+  @@index([gameId])
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  displayName  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  savedPuzzles SavedPuzzle[]
+  activityLogs ActivityLog[]
+}
+
+model SavedPuzzle {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fen             String
+  initialMove     String?
+  solutionPgn     String?
+  reviewStatus    String   @default("DUE_TODAY") // DUE_TODAY, LEARNING, MASTERED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tags            Tag[]    @relation("PuzzleTags")
+}
+
+model Tag {
+  id       String        @id @default(uuid())
+  name     String        @unique // e.g., "Pin", "Fork", "Skewer", "Sacrifice"
+  puzzles  SavedPuzzle[] @relation("PuzzleTags")
+}
+
+model ActivityLog {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  type      ActivityType
+  refId     String?      // id of the related Puzzle, GameAnalysis, or LensSearch row
+  metadata  Json?        // e.g. { blundersFound: 4 } or { theme: "Fork" }
+  createdAt DateTime     @default(now())
+
+  @@index([userId, createdAt])
+}
+
+enum ActivityType {
+  LENS_SEARCH
+  SANDBOX_SESSION
+  TURNING_POINTS_RUN
+  PUZZLE_SAVED
+  PUZZLE_REVIEWED
+}

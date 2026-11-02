@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+*/node_modules/
+legacy-frontend-reference/node_modules/
+chess-trace (V0)/node_modules/
+
+# Python Virtual Environments & Caches
+venv/
+.venv/
+*/venv/
+*/.venv/
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+
+# Production Builds
+dist/
+dist-ssr/
+client-ui/dist/
+legacy-frontend-reference/dist/
+build/
+.next/
+out/
+
+# Environment Variables & Secrets (CRITICAL)
+.env
+.env*.local
+.env.local
+.env.production
+.env.development
+api-server/.env
+*.env
+!*.env.example
+
+# OS Files & IDE
+.DS_Store
+*/.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Large Archives & Logs
+*.zip
+*.tar.gz
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
