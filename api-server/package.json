@@ -8,8 +8,9 @@
     "prisma:migrate": "prisma migrate dev",
     "ingest": "node scripts/ingest.js",
     "ingest:gc": "node --expose-gc scripts/ingest.js",
-    "test": "node --test test/",
-    "start": "node src/index.js"
+    "test": "node --test",
+    "start": "node src/index.js",
+    "test:search": "node scripts/search-smoke.js"
   },
   "dependencies": {
     "@prisma/client": "^5.19.0",

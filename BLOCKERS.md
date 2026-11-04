@@ -1,10 +1,8 @@
-# Blockers
+# Blockers and pending verification
 
-## API test command failed three times
+Updated 2026-11-04 after tasks 1.1–1.4.
 
-On 2026-11-04, `node --test` in `api-server/` exited with code 1 on all three attempts. The suite reports:
-
-- `scripts/test-search.js` cannot connect to the configured Neon PostgreSQL host while calling `prisma.position.findFirst()` (`api-server/scripts/test-search.js:10`).
-- `src/lib/sm2.test.js` fails at line 3 with `ReferenceError: describe is not defined` under Node's built-in test runner.
-
-The smoke test passed in each run. No application or test code was changed to work around these failures.
+- **Resolved:** the previous three failing API runs are historical. The default `node --test` suite now passes all 25 tests. The SM-2 harness is fixed; the live search diagnostic is available explicitly as `npm run test:search`.
+- **Neon migration pending:** the database became reachable and matches the pre-SM-2 baseline, but lacks the five scheduling columns. No migrations were applied during implementation. Follow [docs/MIGRATIONS.md](docs/MIGRATIONS.md), then run its live HTTP test command. The default HTTP integration test uses mocked Prisma persistence.
+- **HNSW index discrepancy:** Neon records `0001_manual_vector_index` as applied, but `pg_indexes` has no `idx_position_vector_hnsw`. The migration file is unchanged. The migration guide includes a command to re-run its idempotent SQL before deployment.
+- **Local Python executable mismatch:** bare `uvicorn` points to Python 3.12 without OpenCV. `python -m uvicorn app.main:app` uses the dependency-complete Python 3.13 environment and passed the health check. Use a consistent project environment locally.
