@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
-const searchRoutes = require('./routes/searchRoutes');
+const createSearchRouter = require('./routes/searchRoutes');
 const authRoutes = require('./routes/authRoutes');
 const vaultRoutes = require('./routes/vaultRoutes');
 const gameRoutes = require('./routes/gameRoutes');
@@ -42,7 +42,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/search', searchRoutes);
+app.use('/api/search', createSearchRouter());
 app.use('/api/auth', authRoutes);
 app.use('/api/vault', vaultRoutes);
 app.use('/api/games', gameRoutes);

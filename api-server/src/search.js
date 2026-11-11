@@ -10,6 +10,7 @@
 // state and is easy to test / reuse from the ingestion script or a future
 // API layer.
 
+const { findCompactExact, findCompactSimilar, findCompactGame } = require('./compact-search');
 const { computeStructuralVector, toPgvectorLiteral } = require('./vector');
 
 /**
@@ -31,6 +32,7 @@ function fenCoreToFullFen(fenCore) {
  * @returns {Promise<Array>} matching Position rows, each with its parent Game
  */
 async function findExactMatch(prisma, fenCore) {
+  if (process.env.USE_COMPACT_STORAGE === 'true') return findCompactExact(prisma, fenCore);
   return prisma.position.findMany({
     where: { fenCore },
     include: { game: true },
@@ -54,6 +56,9 @@ async function findExactMatch(prisma, fenCore) {
  * @returns {Promise<Array<{ id: string, gameId: number, halfMove: number, fenCore: string, distance: number }>>}
  */
 async function findSimilarPositions(prisma, fenCore, limit = 10, options = {}) {
+  if (process.env.USE_COMPACT_STORAGE === 'true') {
+    return findCompactSimilar(prisma, fenCoreToFullFen(fenCore), limit, options);
+  }
   const opening = options.opening ?? '';
   const era = options.era ?? null;
   const filtered = Boolean(opening || era !== null);
@@ -104,4 +109,9 @@ async function findSimilarPositions(prisma, fenCore, limit = 10, options = {}) {
   return rows[1];
 }
 
-module.exports = { findExactMatch, findSimilarPositions, fenCoreToFullFen };
+async function findGameReplay(prisma, id) {
+  if (process.env.USE_COMPACT_STORAGE === 'true') return findCompactGame(prisma, id);
+  return prisma.game.findUnique({ where: { id }, select: { pgn: true } });
+}
+
+module.exports = { findExactMatch, findSimilarPositions, findGameReplay, fenCoreToFullFen };
