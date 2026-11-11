@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
+import { MotifPicker } from '../components/Vault/MotifPicker';
 import { Board } from '../components/Board/Board';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
@@ -39,6 +40,7 @@ export default function TurningPoints() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(null);
   const [saved, setSaved] = useState([]);
+  const [tags, setTags] = useState({});
   const active = useRef(null);
   const isChessCom = /^https:\/\/(www\.)?chess\.com\//i.test(input.trim());
 
@@ -53,6 +55,7 @@ export default function TurningPoints() {
     setError('');
     setPuzzles(null);
     setSaved([]);
+    setTags({});
     setProgress({ done: 0, total: 0 });
     try {
       let pgn = input.trim();
@@ -106,7 +109,7 @@ export default function TurningPoints() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          fen: puzzle.fenBefore, initialMove: puzzle.san, solutionPgn: puzzle.solutionPgn, tags: ['Blunder'],
+          fen: puzzle.fenBefore, initialMove: puzzle.san, solutionPgn: puzzle.solutionPgn, tags: tags[puzzle.index] ?? ['Blunder'],
         }),
       });
       if (!response.ok) throw new Error('Could not save the puzzle.');
@@ -160,6 +163,8 @@ export default function TurningPoints() {
               <h2 className="font-semibold">Move {puzzle.moveNumber}{puzzle.color === 'w' ? '.' : '…'} {puzzle.san}</h2>
               <p className="text-sm text-slate-600">{puzzle.mateSwing ? 'Forced mate swing' : `Lost ${(puzzle.loss / 100).toFixed(2)} pawns of evaluation`}</p>
               <p className="text-sm">Engine move <strong>{puzzle.bestSan}</strong></p>
+              <MotifPicker value={tags[puzzle.index] ?? ['Blunder']} disabled={saving !== null || saved.includes(puzzle.index)}
+                onChange={value => setTags(previous => ({ ...previous, [puzzle.index]: value }))} />
               <button type="button" disabled={saving !== null || saved.includes(puzzle.index)} onClick={() => savePuzzle(puzzle)}
                 className="rounded bg-[#3b759e] px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
                 {saved.includes(puzzle.index) ? 'Saved' : saving === puzzle.index ? 'Saving…' : 'Save to Vault'}

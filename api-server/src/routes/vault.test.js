@@ -24,6 +24,7 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
   assert.equal(fields.find(f => f.name === 'lastReviewedAt').isRequired, false);
   let user;
   let puzzle;
+  const activity = [];
   const db = live ? new PrismaClient() : {
     user: {
       findUnique: async () => user ?? null,
@@ -31,7 +32,7 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
     },
     savedPuzzle: {
       create: async ({ data }) => (puzzle = {
-        ...data, id: 'test-puzzle', tags: [], easeFactor: defaults.easeFactor,
+        ...data, id: 'test-puzzle', tags: data.tags.connectOrCreate.map(({ create }) => create), easeFactor: defaults.easeFactor,
         intervalDays: defaults.intervalDays, repetitions: defaults.repetitions,
         nextReviewAt: new Date(), lastReviewedAt: null,
       }),
@@ -45,11 +46,15 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
       findUnique: async ({ where }) => where.id === puzzle.id ? puzzle : null,
       update: async ({ where, data }) => {
         assert.equal(where.id, puzzle.id);
-        puzzle = { ...puzzle, ...data };
+        puzzle = { ...puzzle, ...data, tags: data.tags ? data.tags.connectOrCreate.map(({ create }) => create) : puzzle.tags };
         return puzzle;
       },
     },
-    activityLog: { create: async () => ({}) },
+    activityLog: {
+      create: async ({ data }) => activity.push({ ...data, createdAt: new Date() }),
+      findMany: async ({ where }) => activity.filter(log => log.userId === where.userId && log.type === where.type),
+    },
+    $transaction: async fn => fn(db),
   };
   let testUserId;
   if (live) t.after(async () => {
@@ -88,7 +93,7 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
   testUserId = registration.body.user.id;
   token = registration.body.token;
   assert.ok(token);
-  const saved = await request('/api/vault', 'POST', { fen: '4k3/8/8/8/8/8/8/4K3 w - - 0 1' });
+  const saved = await request('/api/vault', 'POST', { tags: ['Fork', 'Pin'], fen: '4k3/8/8/8/8/8/8/4K3 w - - 0 1' });
   assert.equal(saved.status, 201);
   assert.equal(saved.body.puzzle.repetitions, 0);
   const queue = await request('/api/vault/review-queue');
@@ -102,5 +107,13 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
   assert.equal(review.body.puzzle.easeFactor, 2.6);
   assert.ok(Date.parse(review.body.puzzle.lastReviewedAt) >= before);
   assert.ok(Date.parse(review.body.puzzle.nextReviewAt) > Date.now());
+  const stats = await request('/api/vault/review-stats');
+  assert.equal(stats.status, 200);
+  assert.deepEqual(stats.body.weeks.map(({ motif, attempts, solved }) => [motif, attempts, solved]).sort(),
+    [['Fork', 1, 1], ['Pin', 1, 1]]);
+  const edit = await request(`/api/vault/${saved.body.puzzle.id}/tags`, 'PATCH', { tags: ['Skewer', 'Pin'] });
+  assert.equal(edit.status, 200);
+  assert.deepEqual(edit.body.puzzle.tags.map(tag => tag.name).sort(), ['Pin', 'Skewer']);
+  assert.deepEqual((await request('/api/vault/review-stats')).body, stats.body);
   assert.deepEqual((await request('/api/vault/review-queue')).body.queue, []);
 });

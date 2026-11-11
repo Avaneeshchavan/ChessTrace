@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Board } from '../components/Board/Board';
 import { useAuth } from '../context/AuthContext';
@@ -9,13 +9,13 @@ import { API_BASE_URL } from '../config/api';
 
 export default function VaultReview() {
   const { token } = useAuth();
-  const navigate = useNavigate();
 
   const [queue, setQueue] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -32,7 +32,10 @@ export default function VaultReview() {
         }
       } catch (err) {
         console.error(err);
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setError('Could not load the review queue.');
+          setIsLoading(false);
+        }
       }
     }
     if (token) fetchQueue();
@@ -42,10 +45,11 @@ export default function VaultReview() {
   const handleRate = async (quality) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    setError('');
     
     const puzzle = queue[currentIndex];
     try {
-      await fetch(`${API_BASE_URL}/api/vault/${puzzle.id}/review`, {
+      const response = await fetch(`${API_BASE_URL}/api/vault/${puzzle.id}/review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,12 +58,14 @@ export default function VaultReview() {
         body: JSON.stringify({ quality })
       });
       
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'Could not save rating.');
+
       // Advance to next
       setIsRevealed(false);
       setCurrentIndex(prev => prev + 1);
     } catch (err) {
       console.error('Failed to submit rating', err);
-      alert('Failed to save rating.');
+      setError(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -72,6 +78,8 @@ export default function VaultReview() {
       </div>
     );
   }
+
+  if (error && !queue.length) return <div className="p-8" role="alert">{error} <Link to="/vault" className="underline">Back to vault</Link></div>;
 
   // All caught up state
   if (currentIndex >= queue.length) {
@@ -96,6 +104,7 @@ export default function VaultReview() {
   
   // Calculate fen after reveal if there is a solutionPgn
   let displayFen = puzzle.fen;
+  let solutionMoves = [];
   if (isRevealed && puzzle.solutionPgn) {
     // Basic support: If solution is a move sequence, we play the first move.
     // For a robust implementation, we might want to let the user play it out or animate.
@@ -107,6 +116,7 @@ export default function VaultReview() {
       const history = tempC.history();
       history.forEach(move => c.move(move));
       displayFen = c.fen();
+      solutionMoves = history;
     } catch (e) {
       console.error('Failed to parse solution PGN', e);
     }
@@ -127,7 +137,7 @@ export default function VaultReview() {
         
         {/* The Board */}
         <div className="w-full max-w-[480px] aspect-square rounded-xl overflow-hidden shadow-xl ring-1 ring-slate-900/10 mb-6 bg-slate-200">
-          <Board fen={displayFen} interactive={false} />
+          <Board fen={displayFen} orientation={puzzle.fen.split(' ')[1] === 'b' ? 'black' : 'white'} interactive={false} viewOnly />
         </div>
 
         {/* Hints / Tags */}
@@ -150,14 +160,16 @@ export default function VaultReview() {
             </button>
           ) : (
             <div className="flex flex-col gap-4">
-              {puzzle.solutionPgn && (
+              {solutionMoves.length > 0 && (
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-center">
                   <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider block mb-1">Solution</span>
-                  <span className="text-lg font-bold text-slate-900">{puzzle.solutionPgn}</span>
+                  <span className="text-lg font-bold text-slate-900">{solutionMoves.join(' ')}</span>
                 </div>
               )}
               
+              {!solutionMoves.length && <p className="text-sm text-slate-600">No engine solution was saved for this puzzle.</p>}
               <div className="text-center text-sm font-medium text-slate-500 mb-2">How difficult was this?</div>
+              {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
               
               <div className="grid grid-cols-4 gap-2">
                 <button 
