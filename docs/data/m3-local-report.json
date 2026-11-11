@@ -1,0 +1,778 @@
+{
+  "games": 469,
+  "distinct_positions": 21911,
+  "vector_positions": 20594,
+  "distinct_game_position_pairs": 25358,
+  "retained_links": 24553,
+  "database_bytes": 20248243,
+  "hnsw_bytes": 3440640,
+  "dedupe_ratio_pairs_per_core": 1.1573182419789148,
+  "ratings": [
+    {
+      "average_elo_band": 2300,
+      "games": 55
+    },
+    {
+      "average_elo_band": 2400,
+      "games": 278
+    },
+    {
+      "average_elo_band": 2500,
+      "games": 109
+    },
+    {
+      "average_elo_band": 2600,
+      "games": 27
+    }
+  ],
+  "years": [
+    {
+      "year": 2026,
+      "games": 469
+    }
+  ],
+  "openings": [
+    {
+      "eco": "B12",
+      "games": 14
+    },
+    {
+      "eco": "A13",
+      "games": 12
+    },
+    {
+      "eco": "B51",
+      "games": 11
+    },
+    {
+      "eco": "B90",
+      "games": 10
+    },
+    {
+      "eco": "B30",
+      "games": 8
+    },
+    {
+      "eco": "D35",
+      "games": 8
+    },
+    {
+      "eco": "E11",
+      "games": 8
+    },
+    {
+      "eco": "A06",
+      "games": 7
+    },
+    {
+      "eco": "A15",
+      "games": 7
+    },
+    {
+      "eco": "B22",
+      "games": 7
+    },
+    {
+      "eco": "C42",
+      "games": 7
+    },
+    {
+      "eco": "A07",
+      "games": 6
+    },
+    {
+      "eco": "A21",
+      "games": 6
+    },
+    {
+      "eco": "C11",
+      "games": 6
+    },
+    {
+      "eco": "D02",
+      "games": 6
+    },
+    {
+      "eco": "A05",
+      "games": 5
+    },
+    {
+      "eco": "A20",
+      "games": 5
+    },
+    {
+      "eco": "A34",
+      "games": 5
+    },
+    {
+      "eco": "A45",
+      "games": 5
+    },
+    {
+      "eco": "A46",
+      "games": 5
+    },
+    {
+      "eco": "B33",
+      "games": 5
+    },
+    {
+      "eco": "B50",
+      "games": 5
+    },
+    {
+      "eco": "B52",
+      "games": 5
+    },
+    {
+      "eco": "B96",
+      "games": 5
+    },
+    {
+      "eco": "C45",
+      "games": 5
+    },
+    {
+      "eco": "C55",
+      "games": 5
+    },
+    {
+      "eco": "C84",
+      "games": 5
+    },
+    {
+      "eco": "D00",
+      "games": 5
+    },
+    {
+      "eco": "D31",
+      "games": 5
+    },
+    {
+      "eco": "E10",
+      "games": 5
+    },
+    {
+      "eco": "A30",
+      "games": 4
+    },
+    {
+      "eco": "A40",
+      "games": 4
+    },
+    {
+      "eco": "B06",
+      "games": 4
+    },
+    {
+      "eco": "B13",
+      "games": 4
+    },
+    {
+      "eco": "B23",
+      "games": 4
+    },
+    {
+      "eco": "B31",
+      "games": 4
+    },
+    {
+      "eco": "B40",
+      "games": 4
+    },
+    {
+      "eco": "C01",
+      "games": 4
+    },
+    {
+      "eco": "C02",
+      "games": 4
+    },
+    {
+      "eco": "C07",
+      "games": 4
+    },
+    {
+      "eco": "C65",
+      "games": 4
+    },
+    {
+      "eco": "C72",
+      "games": 4
+    },
+    {
+      "eco": "D38",
+      "games": 4
+    },
+    {
+      "eco": "E32",
+      "games": 4
+    },
+    {
+      "eco": "A11",
+      "games": 3
+    },
+    {
+      "eco": "A14",
+      "games": 3
+    },
+    {
+      "eco": "B07",
+      "games": 3
+    },
+    {
+      "eco": "B36",
+      "games": 3
+    },
+    {
+      "eco": "B45",
+      "games": 3
+    },
+    {
+      "eco": "C41",
+      "games": 3
+    },
+    {
+      "eco": "C54",
+      "games": 3
+    },
+    {
+      "eco": "C67",
+      "games": 3
+    },
+    {
+      "eco": "D10",
+      "games": 3
+    },
+    {
+      "eco": "D36",
+      "games": 3
+    },
+    {
+      "eco": "D50",
+      "games": 3
+    },
+    {
+      "eco": "E05",
+      "games": 3
+    },
+    {
+      "eco": "E06",
+      "games": 3
+    },
+    {
+      "eco": "E12",
+      "games": 3
+    },
+    {
+      "eco": "E68",
+      "games": 3
+    },
+    {
+      "eco": "E71",
+      "games": 3
+    },
+    {
+      "eco": "E94",
+      "games": 3
+    },
+    {
+      "eco": "E97",
+      "games": 3
+    },
+    {
+      "eco": "A00",
+      "games": 2
+    },
+    {
+      "eco": "A08",
+      "games": 2
+    },
+    {
+      "eco": "A10",
+      "games": 2
+    },
+    {
+      "eco": "A28",
+      "games": 2
+    },
+    {
+      "eco": "A37",
+      "games": 2
+    },
+    {
+      "eco": "A49",
+      "games": 2
+    },
+    {
+      "eco": "A50",
+      "games": 2
+    },
+    {
+      "eco": "A57",
+      "games": 2
+    },
+    {
+      "eco": "B10",
+      "games": 2
+    },
+    {
+      "eco": "B15",
+      "games": 2
+    },
+    {
+      "eco": "B27",
+      "games": 2
+    },
+    {
+      "eco": "B47",
+      "games": 2
+    },
+    {
+      "eco": "B48",
+      "games": 2
+    },
+    {
+      "eco": "B53",
+      "games": 2
+    },
+    {
+      "eco": "B56",
+      "games": 2
+    },
+    {
+      "eco": "B62",
+      "games": 2
+    },
+    {
+      "eco": "B67",
+      "games": 2
+    },
+    {
+      "eco": "C00",
+      "games": 2
+    },
+    {
+      "eco": "C03",
+      "games": 2
+    },
+    {
+      "eco": "C10",
+      "games": 2
+    },
+    {
+      "eco": "C44",
+      "games": 2
+    },
+    {
+      "eco": "C50",
+      "games": 2
+    },
+    {
+      "eco": "C78",
+      "games": 2
+    },
+    {
+      "eco": "C80",
+      "games": 2
+    },
+    {
+      "eco": "C92",
+      "games": 2
+    },
+    {
+      "eco": "D01",
+      "games": 2
+    },
+    {
+      "eco": "D11",
+      "games": 2
+    },
+    {
+      "eco": "D37",
+      "games": 2
+    },
+    {
+      "eco": "D41",
+      "games": 2
+    },
+    {
+      "eco": "D43",
+      "games": 2
+    },
+    {
+      "eco": "D97",
+      "games": 2
+    },
+    {
+      "eco": "E00",
+      "games": 2
+    },
+    {
+      "eco": "E20",
+      "games": 2
+    },
+    {
+      "eco": "E44",
+      "games": 2
+    },
+    {
+      "eco": "E48",
+      "games": 2
+    },
+    {
+      "eco": "E49",
+      "games": 2
+    },
+    {
+      "eco": "E60",
+      "games": 2
+    },
+    {
+      "eco": "E62",
+      "games": 2
+    },
+    {
+      "eco": "E66",
+      "games": 2
+    },
+    {
+      "eco": "A01",
+      "games": 1
+    },
+    {
+      "eco": "A12",
+      "games": 1
+    },
+    {
+      "eco": "A17",
+      "games": 1
+    },
+    {
+      "eco": "A22",
+      "games": 1
+    },
+    {
+      "eco": "A29",
+      "games": 1
+    },
+    {
+      "eco": "A41",
+      "games": 1
+    },
+    {
+      "eco": "A48",
+      "games": 1
+    },
+    {
+      "eco": "A53",
+      "games": 1
+    },
+    {
+      "eco": "A70",
+      "games": 1
+    },
+    {
+      "eco": "B00",
+      "games": 1
+    },
+    {
+      "eco": "B04",
+      "games": 1
+    },
+    {
+      "eco": "B14",
+      "games": 1
+    },
+    {
+      "eco": "B17",
+      "games": 1
+    },
+    {
+      "eco": "B18",
+      "games": 1
+    },
+    {
+      "eco": "B19",
+      "games": 1
+    },
+    {
+      "eco": "B29",
+      "games": 1
+    },
+    {
+      "eco": "B32",
+      "games": 1
+    },
+    {
+      "eco": "B38",
+      "games": 1
+    },
+    {
+      "eco": "B41",
+      "games": 1
+    },
+    {
+      "eco": "B42",
+      "games": 1
+    },
+    {
+      "eco": "B43",
+      "games": 1
+    },
+    {
+      "eco": "B44",
+      "games": 1
+    },
+    {
+      "eco": "B57",
+      "games": 1
+    },
+    {
+      "eco": "B60",
+      "games": 1
+    },
+    {
+      "eco": "B70",
+      "games": 1
+    },
+    {
+      "eco": "B88",
+      "games": 1
+    },
+    {
+      "eco": "B91",
+      "games": 1
+    },
+    {
+      "eco": "B93",
+      "games": 1
+    },
+    {
+      "eco": "B97",
+      "games": 1
+    },
+    {
+      "eco": "C24",
+      "games": 1
+    },
+    {
+      "eco": "C26",
+      "games": 1
+    },
+    {
+      "eco": "C43",
+      "games": 1
+    },
+    {
+      "eco": "C47",
+      "games": 1
+    },
+    {
+      "eco": "C60",
+      "games": 1
+    },
+    {
+      "eco": "C63",
+      "games": 1
+    },
+    {
+      "eco": "C64",
+      "games": 1
+    },
+    {
+      "eco": "C69",
+      "games": 1
+    },
+    {
+      "eco": "C77",
+      "games": 1
+    },
+    {
+      "eco": "C88",
+      "games": 1
+    },
+    {
+      "eco": "C95",
+      "games": 1
+    },
+    {
+      "eco": "C97",
+      "games": 1
+    },
+    {
+      "eco": "D04",
+      "games": 1
+    },
+    {
+      "eco": "D05",
+      "games": 1
+    },
+    {
+      "eco": "D12",
+      "games": 1
+    },
+    {
+      "eco": "D15",
+      "games": 1
+    },
+    {
+      "eco": "D22",
+      "games": 1
+    },
+    {
+      "eco": "D23",
+      "games": 1
+    },
+    {
+      "eco": "D24",
+      "games": 1
+    },
+    {
+      "eco": "D30",
+      "games": 1
+    },
+    {
+      "eco": "D33",
+      "games": 1
+    },
+    {
+      "eco": "D34",
+      "games": 1
+    },
+    {
+      "eco": "D40",
+      "games": 1
+    },
+    {
+      "eco": "D45",
+      "games": 1
+    },
+    {
+      "eco": "D51",
+      "games": 1
+    },
+    {
+      "eco": "D56",
+      "games": 1
+    },
+    {
+      "eco": "D59",
+      "games": 1
+    },
+    {
+      "eco": "D63",
+      "games": 1
+    },
+    {
+      "eco": "D79",
+      "games": 1
+    },
+    {
+      "eco": "D80",
+      "games": 1
+    },
+    {
+      "eco": "D85",
+      "games": 1
+    },
+    {
+      "eco": "D91",
+      "games": 1
+    },
+    {
+      "eco": "D99",
+      "games": 1
+    },
+    {
+      "eco": "E01",
+      "games": 1
+    },
+    {
+      "eco": "E03",
+      "games": 1
+    },
+    {
+      "eco": "E08",
+      "games": 1
+    },
+    {
+      "eco": "E09",
+      "games": 1
+    },
+    {
+      "eco": "E15",
+      "games": 1
+    },
+    {
+      "eco": "E16",
+      "games": 1
+    },
+    {
+      "eco": "E17",
+      "games": 1
+    },
+    {
+      "eco": "E33",
+      "games": 1
+    },
+    {
+      "eco": "E35",
+      "games": 1
+    },
+    {
+      "eco": "E39",
+      "games": 1
+    },
+    {
+      "eco": "E41",
+      "games": 1
+    },
+    {
+      "eco": "E42",
+      "games": 1
+    },
+    {
+      "eco": "E46",
+      "games": 1
+    },
+    {
+      "eco": "E47",
+      "games": 1
+    },
+    {
+      "eco": "E54",
+      "games": 1
+    },
+    {
+      "eco": "E56",
+      "games": 1
+    },
+    {
+      "eco": "E64",
+      "games": 1
+    },
+    {
+      "eco": "E70",
+      "games": 1
+    },
+    {
+      "eco": "E73",
+      "games": 1
+    },
+    {
+      "eco": "E81",
+      "games": 1
+    },
+    {
+      "eco": "E92",
+      "games": 1
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "lichess-broadcast",
+      "games": 469
+    }
+  ]
+}
