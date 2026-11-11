@@ -1,20 +1,28 @@
-import { ArrowDown, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { ArrowDown, ArrowRight, Bookmark, Camera, ScanLine, Search, Swords } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import ChessTraceLogo from '../components/ChessTraceLogo';
+import OpeningReplay from '../components/OpeningReplay';
 import { useAuth } from '../context/AuthContext';
 import '../landing.css';
 
-const imageSizes = '(max-width: 1350px) 54vw, 752px';
-
 const steps = [
-  ['Upload', 'Start with a screenshot of a digital chessboard.'],
-  ['Review', 'Check the reconstructed board and correct any uncertain squares.'],
-  ['Trace', 'Search the game archive for exact positions and similar structures.'],
-  ['Replay', 'Open a match at the position you found and follow the moves.'],
+  [Camera, 'Upload a board', 'Start with a screenshot of a digital chessboard.'],
+  [ScanLine, 'Check the position', 'Review the reconstructed board and correct any uncertain squares.'],
+  [Search, 'Trace its history', 'Find games with the same position or a similar structure, then replay the moves.'],
+];
+
+const studyTools = [
+  [Swords, 'Sandbox', 'Try a different move and see how Stockfish evaluates it in your browser.', '/sandbox'],
+  [Bookmark, 'Pattern Vault', 'Save positions worth revisiting and review them on a spaced repetition schedule.', '/vault'],
 ];
 
 export default function Landing() {
   const { token } = useAuth();
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash === '#sample-game') document.getElementById('sample-game')?.scrollIntoView();
+  }, [hash]);
   const start = token ? '/lens' : '/auth?mode=register';
   return (
     <div className="landing">
@@ -22,7 +30,7 @@ export default function Landing() {
         <Link to="/" aria-label="ChessTrace home"><ChessTraceLogo /></Link>
         <nav aria-label="Site navigation">
           <a className="landing-nav-workflow" href="#workflow">How it works</a>
-          <Link to={token ? '/dashboard' : '/auth'} className="ct-quiet">{token ? 'Open study room' : 'Sign in'}</Link>
+          <Link to={token ? '/dashboard' : '/auth'} className="ct-quiet">{token ? 'Study room' : 'Sign in'}</Link>
         </nav>
       </header>
 
@@ -30,30 +38,22 @@ export default function Landing() {
         <section className="landing-hero" aria-labelledby="landing-title">
           <div className="landing-intro">
             <p className="ct-kicker">A study room for chess</p>
-            <h1 id="landing-title" className="ct-display">Every position<br />has a history.</h1>
+            <h1 id="landing-title" className="ct-display">Every position <em>has a history.</em></h1>
             <p className="landing-lede">Turn a board screenshot into a position you can trace, replay, and study.</p>
             <div className="landing-actions">
-              <Link className="ct-button" to={start}>Start studying <ArrowRight size={17} aria-hidden="true" /></Link>
-              <a className="landing-text-link" href="#workflow">See the workflow <ArrowDown size={15} aria-hidden="true" /></a>
+              <Link className="ct-button" to={start}>{token ? 'Open Origin Lens' : 'Create an account'} <ArrowRight size={17} aria-hidden="true" /></Link>
+              <a className="landing-text-link" href="#sample-game">Try the replay <ArrowDown size={15} aria-hidden="true" /></a>
             </div>
           </div>
-          <figure className="landing-figure">
-            <picture>
-              <source media="(max-width: 760px)" srcSet="/product/origin-lens-mobile.webp" width="480" height="933" />
-              <img src="/product/origin-lens.webp" srcSet="/product/origin-lens-720.webp 720w, /product/origin-lens.webp 1100w" sizes={imageSizes}
-                alt="Origin Lens showing a reconstructed board and exact historical matches"
-                width="1100" height="926" fetchPriority="high" />
-            </picture>
-            <figcaption>Origin Lens · Historical match results</figcaption>
-          </figure>
+          <OpeningReplay />
         </section>
 
         <section className="landing-workflow" id="workflow" aria-labelledby="workflow-title">
           <h2 id="workflow-title" className="ct-display">From screenshot to replay</h2>
           <ol>
-            {steps.map(([title, detail], index) => (
+            {steps.map(([Icon, title, detail]) => (
               <li key={title}>
-                <span className="ct-kicker" aria-hidden="true">0{index + 1}</span>
+                <Icon size={21} aria-hidden="true" />
                 <h3>{title}</h3>
                 <p>{detail}</p>
               </li>
@@ -62,20 +62,16 @@ export default function Landing() {
         </section>
 
         <section className="landing-study" aria-labelledby="study-title">
-          <div>
-            <h2 id="study-title" className="ct-display">Follow the moves.</h2>
-            <p>Step through a matched game in Sandbox, compare similar positions, and explore alternatives with Stockfish in your browser.</p>
-            <Link to={token ? '/sandbox' : '/auth'} className="ct-quiet">Open Sandbox <ArrowRight size={16} aria-hidden="true" /></Link>
+          <h2 id="study-title" className="ct-display">Make the position yours.</h2>
+          <div className="landing-tools">
+            {studyTools.map(([Icon, title, detail, path]) => (
+              <Link key={path} className="landing-tool" to={token ? path : '/auth'} state={{ returnTo: path }}>
+                <Icon size={22} aria-hidden="true" />
+                <div><h3>{title}</h3><p>{detail}</p></div>
+                <ArrowRight size={18} aria-hidden="true" />
+              </Link>
+            ))}
           </div>
-          <figure className="landing-figure">
-            <picture>
-              <source media="(max-width: 760px)" srcSet="/product/sandbox-mobile.webp" width="480" height="1055" />
-              <img src="/product/sandbox.webp" srcSet="/product/sandbox-720.webp 720w, /product/sandbox.webp 1100w" sizes={imageSizes}
-                alt="Sandbox showing the board, a move list, and Stockfish evaluation"
-                width="1100" height="807" loading="lazy" />
-            </picture>
-            <figcaption>Sandbox · Board, move list, and evaluation</figcaption>
-          </figure>
         </section>
       </main>
 

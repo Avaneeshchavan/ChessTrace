@@ -12,6 +12,7 @@ import './Board.css';
  */
 export function Board({
   fen,
+  lastMove,
   orientation = 'white',
   turnColor = 'white',
   onMove,
@@ -27,6 +28,7 @@ export function Board({
   useEffect(() => {
     cgRef.current = Chessground(wrapRef.current, {
       fen,
+      ...(lastMove === undefined ? {} : { lastMove }),
       orientation,
       turnColor,
       animation: { enabled: !window.matchMedia('(prefers-reduced-motion: reduce)').matches, duration: 240 },
@@ -59,10 +61,11 @@ export function Board({
   useEffect(() => {
     cgRef.current?.set({
       fen, orientation, turnColor,
+      ...(lastMove === undefined ? {} : { lastMove }),
       movable: { free: interactive, color: interactive ? 'both' : undefined },
       draggable: { enabled: interactive },
     });
-  }, [fen, orientation, turnColor, interactive]);
+  }, [fen, lastMove, orientation, turnColor, interactive]);
 
   // Mark low-confidence squares directly on the board (dashed red
   // outline via Board.css's `.ct-lowconf`).

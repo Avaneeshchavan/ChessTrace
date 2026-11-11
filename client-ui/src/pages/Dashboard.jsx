@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Flame, Search, Brain, Target, Loader2 } from 'lucide-react';
+import { ArrowRight, Bookmark, Flame, Play, Search, Brain, Swords, Target, Loader2 } from 'lucide-react';
 import { useDashboard } from '../hooks/useDashboard';
 import ActivityHeatmap from '../components/ActivityHeatmap';
 
@@ -24,53 +24,52 @@ function formatActivityMessage(log) {
   }
 }
 
+const tools = [
+  { to: '/lens', title: 'Origin Lens', detail: 'Trace a screenshot to real games.', Icon: Search },
+  { to: '/sandbox', title: 'Sandbox', detail: 'Play a position and test your ideas.', Icon: Swords },
+  { to: '/vault', title: 'Pattern Vault', detail: 'Review the positions you saved.', Icon: Bookmark },
+  { to: '/turning-points', title: 'Turning Points', detail: 'Find critical moves in a PGN.', Icon: Brain },
+];
+
 export default function Dashboard() {
   const { data, isLoading, error, status } = useDashboard();
-
-  if (status === 'waking' || status === 'checking') {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
-        <div className="animate-pulse font-medium">Waiting for servers to wake up...</div>
-      </div>
-    );
-  }
-
-  if (status === 'error') {
-    return <p className="p-6 text-red-700" role="alert">The study room could not reach the game database. Reload to retry.</p>;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4">
-        <Loader2 size={48} className="text-[var(--ct-accent)] animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-8 text-center text-red-500">
-        <p>Error loading dashboard: {error}</p>
-      </div>
-    );
-  }
-
   const { stats, streak, heatmap, recentActivity } = data || {};
+  const loadingActivity = status !== 'error' && isLoading;
+  const activityError = status === 'error' || error;
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-wrap gap-3 items-center justify-between mb-8">
+    <main className="p-4 sm:p-8 max-w-7xl mx-auto">
+      <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mb-2">Dashboard</h1>
-          <p className="text-slate-500 text-sm">Your chess analysis at a glance.</p>
+          <h1 className="ct-display text-5xl">Study room</h1>
+          <p className="mt-2 text-sm text-slate-500">Choose what to study next.</p>
         </div>
-        <div className="flex items-center gap-2 bg-[var(--ct-accent)]/10 text-[var(--ct-accent)] px-4 py-2 rounded-full font-bold">
-          <Flame size={20} className={streak > 0 ? 'text-orange-500' : 'text-[var(--ct-accent)]/50'} />
-          <span>{streak} Day Streak</span>
+        {data && <div className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-sm text-accent">
+          <Flame size={17} aria-hidden="true" />
+          <span>{streak ?? 0} day streak</span>
+        </div>}
+      </header>
+      <section className="mb-8" aria-label="Study tools">
+        <div className="grid grid-cols-1 gap-3 min-[500px]:grid-cols-2 xl:grid-cols-4">
+          {tools.map(({ to, title, detail, Icon }) => (
+            <Link key={to} to={to} className="group grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-accent">
+              <span className="rounded-lg bg-slate-100 p-2.5 text-accent"><Icon size={19} aria-hidden="true" /></span>
+              <span><strong className="block text-sm">{title}</strong><span className="mt-1 block text-xs text-slate-500">{detail}</span></span>
+              <ArrowRight size={16} className="text-accent" aria-hidden="true" />
+            </Link>
+          ))}
         </div>
-      </div>
-
+        <Link to="/#sample-game" className="mt-3 flex min-h-12 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm hover:border-accent">
+          <Play size={16} className="shrink-0 text-accent" aria-hidden="true" />
+          <span><strong>The Opera Game</strong><span className="ml-2 text-slate-500">Follow Morphy’s finish.</span></span>
+          <ArrowRight size={16} className="ml-auto shrink-0 text-accent" aria-hidden="true" />
+        </Link>
+      </section>
+      {loadingActivity && <p className="flex items-center gap-2 text-sm text-slate-500" role="status">
+        <Loader2 size={17} className="animate-spin" aria-hidden="true" /> Loading your activity…
+      </p>}
+      {activityError && <p className="text-sm text-red-700" role="alert">Your activity couldn’t load. You can still open a study tool.</p>}
+      {!loadingActivity && !activityError && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Stats & Heatmap */}
         <div className="lg:col-span-2 flex flex-col gap-8">
@@ -95,31 +94,6 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 overflow-x-auto">
             <h3 className="text-lg font-semibold tracking-tight text-slate-900 mb-6">Activity (Last 90 Days)</h3>
             <ActivityHeatmap data={heatmap} />
-          </div>
-
-          {/* Quick Launch Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link to="/lens" className="group bg-[var(--ct-accent)] rounded-xl p-6 text-white hover:bg-[var(--ct-accent-hover)] transition-colors relative overflow-hidden">
-              <div className="relative z-10">
-                <h3 className="text-xl font-semibold tracking-tight mb-2">Origin Lens</h3>
-                <p className="text-on-accent/90 text-sm mb-4">Analyze a position screenshot</p>
-                <div className="flex items-center gap-1 font-semibold text-sm">
-                  Launch <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-              <Search size={100} className="absolute -right-6 -bottom-6 text-on-accent/10 group-hover:scale-110 transition-transform duration-300" />
-            </Link>
-
-            <Link to="/turning-points" className="group bg-slate-800 rounded-xl p-6 text-slate-900 hover:bg-slate-100 transition-colors relative overflow-hidden">
-              <div className="relative z-10">
-                <h3 className="text-xl font-semibold tracking-tight mb-2">Turning Points</h3>
-                <p className="text-slate-400 text-sm mb-4">Batch analyze a PGN</p>
-                <div className="flex items-center gap-1 font-semibold text-sm text-[var(--ct-accent)]">
-                  Launch <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-              <Brain size={100} className="absolute -right-6 -bottom-6 text-slate-900/10 group-hover:scale-110 transition-transform duration-300" />
-            </Link>
           </div>
 
         </div>
@@ -157,6 +131,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
+      )}
+    </main>
   );
 }
