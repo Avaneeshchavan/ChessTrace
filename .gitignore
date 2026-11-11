@@ -54,3 +54,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Local chess corpus and ingestion progress
+/api-server/data/corpus/
+/api-server/.ingest-checkpoints/
