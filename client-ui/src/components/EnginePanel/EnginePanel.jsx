@@ -9,6 +9,7 @@ export function EnginePanel({
   setDepth,
   searchDepthReached,
   orientation,
+  error,
 }) {
   return (
     <div className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-5 flex flex-col gap-4">
@@ -26,11 +27,12 @@ export function EnginePanel({
         <EvalBar evaluation={evaluation} orientation={orientation} />
 
         <div className="flex-1 flex flex-col gap-3">
-          {!ready && (
+          {error && <p role="status" className="text-sm text-red-700">{error}</p>}
+          {!ready && !error && (
             <p className="font-mono text-xs text-slate-400">warming up the engine…</p>
           )}
 
-          {ready && (
+          {!error && (
             <>
               <div>
                 <div className="flex items-baseline justify-between text-xs font-medium uppercase tracking-wider text-slate-400">
@@ -42,7 +44,7 @@ export function EnginePanel({
                 <input
                   type="range"
                   min={4}
-                  max={24}
+                  max={18}
                   value={depth}
                   onChange={(e) => setDepth(Number(e.target.value))}
                   className="w-full accent-[#3b759e]"

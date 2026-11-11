@@ -1,104 +1,51 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createStockfishClient } from './stockfishClient';
 
-/**
- * Client-side WASM Stockfish. Never touches the Node backend — this is
- * what keeps engine analysis free at any scale (Deliverable 3).
- *
- * Parses standard UCI `info` lines for score/depth/pv and exposes them as
- * state, plus a controllable `depth` slider that's re-sent as `go depth N`
- * whenever it changes (rather than a fixed search).
- */
-export function useStockfish() {
-  const workerRef = useRef(null);
-  const [ready, setReady] = useState(false);
+export function useStockfish(fen) {
   const [depth, setDepth] = useState(14);
-  const [evaluation, setEvaluation] = useState(null); // { type: 'cp'|'mate', value: number }
-  const [bestLine, setBestLine] = useState([]); // array of UCI moves, e.g. ['e2e4', 'e7e5']
-  const [searchDepthReached, setSearchDepthReached] = useState(0);
-  const currentFenRef = useRef(null);
+  const [result, setResult] = useState(null);
+  const [failure, setFailure] = useState(null);
+  const key = `${fen}|${depth}`;
 
   useEffect(() => {
-    const worker = new Worker('/stockfish/stockfish-worker.js');
-    workerRef.current = worker;
-
-    worker.onmessage = (e) => {
-      const line = typeof e.data === 'string' ? e.data : '';
-
-      if (line === 'ct-worker-ready') {
-        worker.postMessage('uci');
-        return;
+    if (!fen) return;
+    let engine;
+    let active = true;
+    const timer = setTimeout(async () => {
+      const turn = fen.split(' ')[1];
+      const show = info => {
+        if (!active || !info.evaluation) return;
+        const { evaluation } = info;
+        const whiteScore = evaluation.value * (turn === 'b' ? -1 : 1);
+        setResult({ ...info, key, evaluation: { ...evaluation, value: whiteScore } });
+      };
+      try {
+        engine = createStockfishClient();
+        const final = await engine.analyze(fen, depth, show);
+        if (!final.evaluation) throw new Error('Stockfish returned no evaluation for this position.');
+        show(final);
+      } catch (error) {
+        if (active) setFailure({ key, message: error.message });
+      } finally {
+        engine?.close();
       }
-      if (line === 'uciok') {
-        worker.postMessage('isready');
-        return;
-      }
-      if (line === 'readyok') {
-        setReady(true);
-        return;
-      }
-      if (line.startsWith('info')) {
-        parseInfoLine(line, { setEvaluation, setBestLine, setSearchDepthReached });
-      }
-      // 'bestmove ...' lines are intentionally not treated as terminal —
-      // the eval bar tracks the latest 'info' line as depth increases,
-      // per the "live evaluation" requirement rather than a one-shot result.
-    };
-
+    }, 160);
     return () => {
-      worker.terminate();
+      active = false;
+      clearTimeout(timer);
+      engine?.close();
     };
-  }, []);
+  }, [fen, depth, key]);
 
-  const evaluatePosition = useCallback(
-    (fullFen) => {
-      const worker = workerRef.current;
-      if (!worker || !ready) return;
-      currentFenRef.current = fullFen;
-      worker.postMessage('stop');
-      worker.postMessage(`position fen ${fullFen}`);
-      worker.postMessage(`go depth ${depth}`);
-    },
-    [ready, depth]
-  );
-
-  // Re-run search at the same position whenever the depth slider moves.
-  useEffect(() => {
-    if (currentFenRef.current) {
-      evaluatePosition(currentFenRef.current);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [depth]);
-
+  const current = result?.key === key ? result : null;
+  const error = failure?.key === key ? failure.message : '';
   return {
-    ready,
+    ready: !!current,
     depth,
     setDepth,
-    evaluation,
-    bestLine,
-    searchDepthReached,
-    evaluatePosition,
+    evaluation: current?.evaluation,
+    bestLine: current?.pv ?? [],
+    searchDepthReached: current?.depth ?? 0,
+    error,
   };
-}
-
-function parseInfoLine(line, { setEvaluation, setBestLine, setSearchDepthReached }) {
-  const tokens = line.split(' ');
-
-  const depthIdx = tokens.indexOf('depth');
-  if (depthIdx !== -1) {
-    setSearchDepthReached(Number(tokens[depthIdx + 1]));
-  }
-
-  const scoreIdx = tokens.indexOf('score');
-  if (scoreIdx !== -1) {
-    const type = tokens[scoreIdx + 1]; // 'cp' or 'mate'
-    const value = Number(tokens[scoreIdx + 2]);
-    if (type === 'cp' || type === 'mate') {
-      setEvaluation({ type, value });
-    }
-  }
-
-  const pvIdx = tokens.indexOf('pv');
-  if (pvIdx !== -1) {
-    setBestLine(tokens.slice(pvIdx + 1));
-  }
 }

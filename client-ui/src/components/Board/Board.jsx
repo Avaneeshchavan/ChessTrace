@@ -21,6 +21,8 @@ export function Board({
 }) {
   const wrapRef = useRef(null);
   const cgRef = useRef(null);
+  const latest = useRef({ fen, onMove });
+  useEffect(() => { latest.current = { fen, onMove }; }, [fen, onMove]);
 
   useEffect(() => {
     cgRef.current = Chessground(wrapRef.current, {
@@ -33,7 +35,9 @@ export function Board({
         events: {
           after: (orig, dest) => {
             const placement = cgRef.current?.getFen();
-            onMove?.(orig, dest, placement);
+            if (latest.current.onMove?.(orig, dest, placement) === false) {
+              cgRef.current?.set({ fen: latest.current.fen, lastMove: [] });
+            }
           },
         },
       },
@@ -52,8 +56,12 @@ export function Board({
   }, []);
 
   useEffect(() => {
-    cgRef.current?.set({ fen, orientation, turnColor });
-  }, [fen, orientation, turnColor]);
+    cgRef.current?.set({
+      fen, orientation, turnColor,
+      movable: { free: interactive, color: interactive ? 'both' : undefined },
+      draggable: { enabled: interactive },
+    });
+  }, [fen, orientation, turnColor, interactive]);
 
   // Mark low-confidence squares directly on the board (dashed red
   // outline via Board.css's `.ct-lowconf`).
@@ -83,7 +91,7 @@ export function Board({
           })}
         </div>
         {/* Chessground host — must be block-sized to fill parent */}
-        <div className="absolute inset-0" ref={wrapRef} />
+        <div className="ct-board-host" ref={wrapRef} />
       </div>
     );
   }

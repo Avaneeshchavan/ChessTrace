@@ -1,21 +1,34 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
-const { findExactMatch, findSimilarPositions } = require('../search');
+const { validateFen } = require('chess.js');
+const { checkSyntacticLegality } = require('../legality');
+const { findExactMatch, findSimilarPositions, fenCoreToFullFen } = require('../search');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+function getSearchPosition(fen) {
+  if (typeof fen !== 'string' || !fen.trim() || fen.length > 200) {
+    return { error: 'Enter a FEN position.' };
+  }
+  const fields = fen.trim().split(/\s+/);
+  if (![3, 6].includes(fields.length)) return { error: 'FEN must have three or six fields.' };
+  const fenCore = fields.slice(0, 3).join(' ');
+  const fullFen = fields.length === 3 ? fenCoreToFullFen(fenCore) : fields.join(' ');
+  const format = validateFen(fullFen);
+  if (!format.ok) return { error: format.error };
+  const legality = checkSyntacticLegality(fenCore);
+  if (!legality.legal) return { error: legality.reasons.join(' ') };
+  return { fenCore };
+}
 
 // GET or POST /api/search
 // Body/Query: { fen }
 router.all('/', async (req, res) => {
   try {
-    const fen = req.method === 'POST' ? req.body.fen : req.query.fen;
-    if (!fen) {
-      return res.status(400).json({ error: 'Missing fen parameter' });
-    }
-
-    // Extract fenCore: first 3 parts
-    const fenCore = fen.trim().split(/\s+/).slice(0, 3).join(' ');
+    const fen = req.method === 'POST' ? req.body?.fen : req.query.fen;
+    const { fenCore, error } = getSearchPosition(fen);
+    if (error) return res.status(400).json({ error });
 
     let matches = await findExactMatch(prisma, fenCore);
     let matchType = 'exact';
@@ -25,7 +38,7 @@ router.all('/', async (req, res) => {
       matchType = 'similar';
     }
 
-    res.json({ matches, matchType, fenCore });
+    res.json({ matches: matches.map(match => ({ ...match, id: String(match.id) })), matchType, fenCore });
 
     // Fire-and-forget logging
     const authHeader = req.headers.authorization;
