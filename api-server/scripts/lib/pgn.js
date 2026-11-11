@@ -62,8 +62,11 @@ function prepareGame({ headers, body }, { minElo = 0, completedOnly = false,
     // Lichess broadcasts can put evaluation, prose and clock in separate
     // adjacent comments on the same move. chess.js accepts one block.
     const joinedComments = movetext.replace(/\}\s*\{/g, ' ');
-    if (joinedComments === movetext) throw error;
-    pgn = `${tags}\n\n${joinedComments}`;
+    // Its tag parser also treats an escaped straight quote as the end of
+    // the tag value. Use a typographic quote inside that value for replay.
+    const replayTags = tags.replace(/\\"/g, '”');
+    if (joinedComments === movetext && replayTags === tags) throw error;
+    pgn = `${replayTags}\n\n${joinedComments}`;
     chess.loadPgn(pgn);
   }
   const moves = chess.history({ verbose: true });

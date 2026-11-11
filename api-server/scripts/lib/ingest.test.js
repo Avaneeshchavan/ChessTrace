@@ -48,3 +48,12 @@ test('accepts adjacent Lichess broadcast comments without losing their text', ()
   assert.equal(game.positions.length, 2);
   assert.match(game.pgn, /\{\s*\[%eval 0\.1\]\s+Strong start\.\s+\[%clk 1:00:00\]\s*\}/);
 });
+
+test('broadcast tags with escaped quotes remain replayable', () => {
+  const game = prepareGame({
+    headers: { Event: String.raw`Open \"Final\"`, Result: '1-0' },
+    body: ['1. e4 e5 1-0'],
+  });
+  assert.equal(game.positions.length, 2);
+  assert.match(game.pgn, /\[Event "Open ”Final”"\]/);
+});
