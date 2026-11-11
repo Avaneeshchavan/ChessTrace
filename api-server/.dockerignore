@@ -1,0 +1,11 @@
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!prisma/
+!prisma/schema.prisma
+!config/
+!config/**
+!src/
+!src/**
+src/**/*.test.js
