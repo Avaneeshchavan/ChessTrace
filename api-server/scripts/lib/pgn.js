@@ -44,22 +44,35 @@ function elo(value) {
   return Number.isInteger(n) && n > 0 && n <= 4000 ? n : null;
 }
 
-function prepareGame({ headers, body }, { minElo = 0, completedOnly = false } = {}) {
+function prepareGame({ headers, body }, { minElo = 0, completedOnly = false,
+  maxPly = Infinity, vectorMinPly = 1, vectorMaxPly = Infinity,
+} = {}) {
   const whiteElo = elo(headers.WhiteElo), blackElo = elo(headers.BlackElo);
   if (minElo && ((whiteElo ?? 0) < minElo || (blackElo ?? 0) < minElo)) return null;
   if (completedOnly && !RESULTS.has(headers.Result)) return null;
   if (headers.Variant && !/^(standard|chess)$/i.test(headers.Variant)) return null;
 
   const tags = Object.entries(headers).map(([key, value]) => `[${key} "${value}"]`).join('\n');
-  const pgn = `${tags}\n\n${body.join('\n')}`;
+  const movetext = body.join('\n');
+  let pgn = `${tags}\n\n${movetext}`;
   const chess = new Chess();
-  chess.loadPgn(pgn);
+  try {
+    chess.loadPgn(pgn);
+  } catch (error) {
+    // Lichess broadcasts can put evaluation, prose and clock in separate
+    // adjacent comments on the same move. chess.js accepts one block.
+    const joinedComments = movetext.replace(/\}\s*\{/g, ' ');
+    if (joinedComments === movetext) throw error;
+    pgn = `${tags}\n\n${joinedComments}`;
+    chess.loadPgn(pgn);
+  }
   const moves = chess.history({ verbose: true });
   if (!moves.length) return null;
-  const positions = moves.map(({ after }, i) => ({
+  const positions = moves.slice(0, maxPly).map(({ after }, i) => ({
     halfMove: i + 1,
     fenCore: after.split(' ').slice(0, 3).join(' '),
-    vector: toPgvectorLiteral(computeStructuralVector(after)),
+    vector: i + 1 >= vectorMinPly && i + 1 <= vectorMaxPly
+      ? toPgvectorLiteral(computeStructuralVector(after)) : null,
   }));
   const date = headers.Date?.replaceAll('.', '-');
   const timestamp = /^\d{4}-\d{2}-\d{2}$/.test(date ?? '') ? new Date(date) : null;

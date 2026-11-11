@@ -39,3 +39,12 @@ test('checkpoint reopens at the committed game and rejects a changed identity', 
   assert.equal((await openCheckpoint(file, 'source-and-target')).start, 25);
   await assert.rejects(openCheckpoint(file, 'other-source'), /does not match/);
 });
+
+test('accepts adjacent Lichess broadcast comments without losing their text', () => {
+  const game = prepareGame({
+    headers: { Result: '1-0' },
+    body: ['1. e4 { [%eval 0.1] } { Strong start. } { [%clk 1:00:00] } e5 1-0'],
+  });
+  assert.equal(game.positions.length, 2);
+  assert.match(game.pgn, /\{\s*\[%eval 0\.1\]\s+Strong start\.\s+\[%clk 1:00:00\]\s*\}/);
+});
