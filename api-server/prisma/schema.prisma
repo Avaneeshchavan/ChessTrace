@@ -43,6 +43,7 @@ model Game {
   pgn        String     @db.Text // full original PGN text, kept verbatim for display/replay
 
   positions  Position[]
+  compact    CompactGame?
 
   createdAt  DateTime   @default(now())
 
@@ -138,4 +139,38 @@ enum ActivityType {
   TURNING_POINTS_RUN
   PUZZLE_SAVED
   PUZZLE_REVIEWED
+}
+
+model CompactGame {
+  gameId  Int            @id @map("game_id")
+  game    Game           @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  pgnHash Bytes          @unique @map("pgn_hash")
+  pgnGzip Bytes?         @map("pgn_gzip")
+  opening String?
+  eco     String?
+  startFen String?       @map("start_fen")
+  positions PositionGame[]
+
+  @@map("compact_game")
+}
+
+model CompactPosition {
+  key        BigInt                    @id
+  fenCore    String                    @map("fen_core") @db.VarChar(90)
+  gamesCount BigInt                    @map("games_count")
+  vector     Unsupported("halfvec(32)")?
+  games      PositionGame[]
+
+  @@map("position_v2")
+}
+
+model PositionGame {
+  key      BigInt
+  position CompactPosition @relation(fields: [key], references: [key], onDelete: Cascade, onUpdate: NoAction)
+  gameId   Int             @map("game_id")
+  game     CompactGame     @relation(fields: [gameId], references: [gameId], onDelete: Restrict, onUpdate: NoAction)
+  ply      Int             @db.SmallInt
+
+  @@id([key, gameId])
+  @@map("position_game")
 }
