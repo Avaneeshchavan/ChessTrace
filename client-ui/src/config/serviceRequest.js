@@ -1,4 +1,5 @@
 const services = new Map();
+const requestDrivenServices = new Set();
 const RECHECK_AFTER_MS = 14 * 60 * 1000;
 const WAKE_TIMEOUT_MS = 120_000;
 const PROBE_TIMEOUT_MS = 65_000;
@@ -17,9 +18,13 @@ export class ServiceRequestInterruptedError extends Error {
   }
 }
 
+export function configureRequestDrivenService(url) {
+  requestDrivenServices.add(url);
+}
+
 export function serviceHealth(url) {
   if (!services.has(url)) {
-    let status = 'checking';
+    let status = requestDrivenServices.has(url) ? 'awake' : 'checking';
     let lastContact = 0;
     let pending;
     const listeners = new Set();
@@ -34,6 +39,7 @@ export function serviceHealth(url) {
     };
 
     function check(force = false) {
+      if (requestDrivenServices.has(url)) return Promise.resolve();
       if (pending) return pending;
       if (!force && status === 'awake' && Date.now() - lastContact < RECHECK_AFTER_MS) {
         return Promise.resolve();

@@ -1,4 +1,7 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is required in production.');
+}
 const express = require('express');
 const cors = require('cors');
 
@@ -50,9 +53,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 
 async function startServer() {
-  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET is required in production.');
-  }
   const compact = process.env.USE_COMPACT_STORAGE === 'true';
   const tables = compact ? ['"Game"', 'compact_game', 'position_v2', 'position_game'] : ['"Game"', '"Position"'];
   const checks = await prisma.$queryRaw`
@@ -70,8 +70,12 @@ async function startServer() {
   app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 }
 
-startServer().catch(async error => {
-  console.error('API startup failed:', error.code || error.message);
-  await prisma.$disconnect();
-  process.exitCode = 1;
-});
+if (require.main === module && process.env.VERCEL !== '1') {
+  startServer().catch(async error => {
+    console.error('API startup failed:', error.code || error.message);
+    await prisma.$disconnect();
+    process.exitCode = 1;
+  });
+}
+
+module.exports = app;

@@ -1,9 +1,9 @@
 import { fetchService } from '../config/serviceRequest';
 import { createContext, useContext, useState } from 'react';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, API_REQUEST_DRIVEN } from '../config/api';
 
 const AuthContext = createContext(null);
-const authRequest = { timeoutMs: 45_000 };
+const authRequest = { timeoutMs: API_REQUEST_DRIVEN ? 12_000 : 45_000 };
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('token'));

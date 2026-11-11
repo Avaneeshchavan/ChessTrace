@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { setTimeout as wait } from 'node:timers/promises';
-import { fetchService, serviceHealth, ServiceRequestInterruptedError } from './serviceRequest.js';
+import { configureRequestDrivenService, fetchService, serviceHealth, ServiceRequestInterruptedError } from './serviceRequest.js';
 
 test('signup shares the first health check even when a sleeping server takes 15 seconds', async t => {
   const url = 'https://slow-start.example.invalid';
@@ -37,4 +37,18 @@ test('a failed registration response is never replayed automatically', async t =
   await assert.rejects(fetchService(url, '/api/auth/register', { method: 'POST' }), ServiceRequestInterruptedError);
   await serviceHealth(url).check();
   assert.deepEqual(requests, [url + '/health', url + '/api/auth/register', url + '/health']);
+});
+
+test('request-driven signup submits immediately without polling or replaying the POST', async t => {
+  const url = 'https://request-driven.example.invalid';
+  configureRequestDrivenService(url);
+  const requests = [];
+  t.mock.method(globalThis, 'fetch', async (target, options) => {
+    requests.push([target, options.method]);
+    return new Response(null, { status: 503 });
+  });
+
+  await serviceHealth(url).check();
+  await assert.rejects(fetchService(url, '/api/auth/register', { method: 'POST' }), ServiceRequestInterruptedError);
+  assert.deepEqual(requests, [[url + '/api/auth/register', 'POST']]);
 });

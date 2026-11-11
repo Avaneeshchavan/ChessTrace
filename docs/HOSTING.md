@@ -50,3 +50,11 @@ PASS due queue
 ```
 
 The production probe created one synthetic account and one saved puzzle. Hosted peak memory and real cold-start timing were not measured. External uptime monitoring is documented above and remains pending.
+
+## Request-driven API on Vercel
+
+Import the release branch into a separate Vercel Hobby project with `api-server` as its root and the Express preset. Set `DATABASE_URL` to the current pooled Neon URL, including `connection_limit=2`, and use the existing `JWT_SECRET` to preserve sessions. Set `USE_COMPACT_STORAGE=true` and `CORS_ORIGIN` to the exact frontend origin. Configure those variables only in the API project. The API function in Singapore serves requests without starting the standalone listener or counting corpus rows. Run the corpus and migration checks above as part of release verification. [Express on Vercel](https://vercel.com/docs/frameworks/backend/express)
+
+Before switching the frontend, test the new API against the existing Neon database and the Render vision service with the verifier above. Set the frontend project's `VITE_API_BASE_URL` to the new API origin and `VITE_API_REQUEST_DRIVEN=true` together, then rebuild. The request-driven option sends signup and sign-in directly, without a separate health check. It uses a 12-second client deadline and leaves registration retries to the user. If reverting to Render, restore its API origin and set `VITE_API_REQUEST_DRIVEN=false`. The scanner remains on its own service and retains its existing upload handling.
+
+Vercel Hobby includes “4 hours” of active CPU, “360 GB-hrs” of provisioned memory and “1 million” invocations per month. Vercel Functions may still cold-start. Neon Free compute also resumes on the first database query after inactivity. [Vercel Fluid compute pricing](https://vercel.com/docs/functions/usage-and-pricing) · [Vercel Functions](https://vercel.com/docs/functions) · [Neon pricing](https://neon.com/pricing)
