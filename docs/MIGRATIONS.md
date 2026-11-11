@@ -1,26 +1,24 @@
 # Applying the SM-2 migration on Neon
 
-Neon initially failed to connect, then became reachable during verification. A read-only check confirmed the SM-2 fields are absent. No Neon schema or data was changed; the default HTTP integration test uses a mocked Prisma client until the migration is applied. SQL was generated offline with the installed Prisma 5 CLI, and the client was regenerated.
+Neon initially failed to connect, then became reachable during verification. A read-only check confirmed the SM-2 fields are absent. No app tables or migration records were changed by the assistant; the default HTTP integration test uses a mocked Prisma client until the migration is applied. SQL was generated offline with the installed Prisma 5 CLI, and the client was regenerated.
 
-## Verified existing Neon database (2026-11-04)
+## Recovering the existing Neon database (verified 2026-11-11)
 
-A read-only `prisma migrate diff` against the pre-SM-2 schema returned an empty migration. Neon records `0001_manual_vector_index` as successfully applied (and has an older rolled-back attempt). However, `pg_indexes` has no `idx_position_vector_hnsw` entry. The five SM-2 columns are absent.
+The pasted run got P1001 while connecting to Neon, so the baseline was not recorded before `migrate deploy` tried to create the existing `ActivityType` enum (P3018 / 42710). The latest read-only check found a failed `0000_initial_schema` record, no SM-2 columns, and an empty diff against the pre-SM-2 schema. The manual HNSW migration is recorded as applied, but its named index is absent. Do not reset the database or rerun the baseline SQL.
 
-For this verified database, after setting the ignored `.env` URLs as described below, run from the repository root:
+From the repository root, use this fail-fast sequence for that verified state. It contains no shell comment lines, so it can be pasted into interactive zsh. Stop if a step fails; in particular, reconnect or wake Neon before retrying a P1001. If the baseline has since been marked applied, skip the resolve step.
 
 ```sh
-cd api-server
-npm ci
-npx prisma generate
-npx prisma migrate resolve --applied 0000_initial_schema
-npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/0001_manual_vector_index/migration.sql
-npx prisma migrate deploy
-npx prisma generate
-npx prisma migrate status
+cd api-server &&
+npx prisma migrate resolve --applied 0000_initial_schema &&
+npx prisma db execute --schema prisma/schema.prisma --file prisma/migrations/0001_manual_vector_index/migration.sql &&
+npx prisma migrate deploy &&
+npx prisma generate &&
+npx prisma migrate status &&
 CHESSTRACE_LIVE_DB_TEST=1 node --test src/routes/vault.test.js
 ```
 
-Run the `resolve` step once, only while the baseline is not recorded. The `db execute` step restores the missing HNSW index using the unchanged, idempotent manual SQL; it does not change migration history. The successful existing manual migration remains recorded. Building this index can take time on a populated Position table. The live HTTP test creates and cleans up its own fixtures.
+`resolve --applied` reconciles the failed baseline with the existing schema. The index command reuses the original idempotent SQL and can take time on a populated Position table. The live HTTP test creates and cleans up its own fixtures. See [Prisma's failed migration recovery guidance](https://www.prisma.io/docs/orm/prisma-migrate/workflows/patching-and-hotfixing).
 
 Migration order:
 
@@ -51,7 +49,7 @@ Compare the baseline SQL with the existing schema before marking it applied. Par
 npx prisma migrate resolve --applied 0001_manual_vector_index
 ```
 
-If the HNSW index does not exist, leave its migration pending so deploy creates it. For an **empty database**, skip both `resolve` commands: deploy creates the baseline tables, HNSW index and SM-2 fields in order.
+If both the HNSW index and its migration record are absent, leave the migration pending so deploy creates it. If its migration is already recorded but the index is absent, use the idempotent index command above. For an **empty database**, skip both `resolve` commands: deploy creates the baseline tables, HNSW index and SM-2 fields in order.
 
 Apply the pending migrations and regenerate the client:
 
