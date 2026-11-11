@@ -1,40 +1,40 @@
-const { calculateNextReview } = require('./sm2');
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { calculateNextReview, addDays } = require('./sm2');
 
-describe('SM-2 Algorithm', () => {
-  it('resets repetitions to 0 and interval to 1 on a fail (quality < 3)', () => {
-    const initialState = { easeFactor: 2.5, intervalDays: 10, repetitions: 5, quality: 2 };
-    const result = calculateNextReview(initialState);
-    
-    expect(result.repetitions).toBe(0);
-    expect(result.intervalDays).toBe(1);
-    expect(result.easeFactor).toBe(2.5); // Ease factor remains unchanged on fail
+for (const quality of [0, 1, 2]) {
+  test(`quality ${quality} resets repetitions and interval on failure`, () => {
+    const before = new Date();
+    const result = calculateNextReview({ easeFactor: 2.5, intervalDays: 30, repetitions: 7, quality });
+    assert.equal(result.repetitions, 0);
+    assert.equal(result.intervalDays, 1);
+    assert.equal(result.easeFactor, 2.5);
+    assert.ok(result.nextReviewAt >= addDays(before, 1));
+    assert.ok(result.nextReviewAt <= addDays(new Date(), 1));
   });
+}
 
-  it('grows the interval on three consecutive passes (quality >= 3)', () => {
-    // First pass
-    const state1 = calculateNextReview({ easeFactor: 2.5, intervalDays: 0, repetitions: 0, quality: 4 });
-    expect(state1.repetitions).toBe(1);
-    expect(state1.intervalDays).toBe(1);
-    
-    // Second pass
-    const state2 = calculateNextReview({ easeFactor: state1.easeFactor, intervalDays: state1.intervalDays, repetitions: state1.repetitions, quality: 4 });
-    expect(state2.repetitions).toBe(2);
-    expect(state2.intervalDays).toBe(6);
-    
-    // Third pass
-    const state3 = calculateNextReview({ easeFactor: state2.easeFactor, intervalDays: state2.intervalDays, repetitions: state2.repetitions, quality: 4 });
-    expect(state3.repetitions).toBe(3);
-    expect(state3.intervalDays).toBeGreaterThan(6);
-  });
+test('first, second and later successes use 1, 6 and rounded growing intervals', () => {
+  const first = calculateNextReview({ easeFactor: 2.5, intervalDays: 0, repetitions: 0, quality: 5 });
+  assert.equal(first.repetitions, 1);
+  assert.equal(first.intervalDays, 1);
+  assert.equal(first.easeFactor, 2.6);
+  const second = calculateNextReview({ ...first, quality: 4 });
+  assert.equal(second.repetitions, 2);
+  assert.equal(second.intervalDays, 6);
+  const third = calculateNextReview({ ...second, quality: 5 });
+  assert.equal(third.repetitions, 3);
+  assert.equal(third.intervalDays, 16);
+  assert.equal(third.intervalDays, Math.round(second.intervalDays * third.easeFactor));
+  const later = calculateNextReview({ easeFactor: 2.5, intervalDays: 30, repetitions: 7, quality: 3 });
+  assert.equal(later.repetitions, 8);
+  assert.equal(later.intervalDays, 71);
+});
 
-  it('ensures easeFactor never drops below 1.3', () => {
-    // Drop ease factor significantly by repeatedly getting quality 3
-    let currentState = { easeFactor: 1.4, intervalDays: 1, repetitions: 1, quality: 3 };
-    const result = calculateNextReview(currentState);
-    
-    expect(result.easeFactor).toBe(1.3);
-    
-    const nextResult = calculateNextReview({ ...result, quality: 3 });
-    expect(nextResult.easeFactor).toBe(1.3);
-  });
+test('ease factor stays at or above 1.3 after repeated difficult successes', () => {
+  let state = { easeFactor: 1.4, intervalDays: 1, repetitions: 2 };
+  for (let i = 0; i < 10; i++) {
+    state = calculateNextReview({ ...state, quality: 3 });
+    assert.equal(state.easeFactor, 1.3);
+  }
 });

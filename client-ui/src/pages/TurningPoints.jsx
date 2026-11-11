@@ -1,313 +1,178 @@
-import { useState, useRef, useEffect } from 'react';
-import { Play, Loader2, BookmarkPlus, Check } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
+import { MotifPicker } from '../components/Vault/MotifPicker';
 import { Board } from '../components/Board/Board';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
+import { createStockfishClient } from '../hooks/stockfishClient';
+import { findTurningPoints } from '../utils/turningPoints';
 import { API_BASE_URL } from '../config/api';
+
+const example = 'https://lichess.org/diwRghmF';
+
+function parseGame(pgn, signal) {
+  signal.throwIfAborted();
+  const worker = new Worker(new URL('../workers/parseGame.js', import.meta.url), { type: 'module' });
+  return new Promise((resolve, reject) => {
+    function finish(error, history) {
+      worker.terminate();
+      signal.removeEventListener('abort', cancel);
+      if (error) reject(error);
+      else resolve(history);
+    }
+    function cancel() { finish(signal.reason); }
+    signal.addEventListener('abort', cancel, { once: true });
+    worker.onerror = () => finish(new Error('Could not parse the PGN.'));
+    worker.onmessage = ({ data }) => finish(data.error ? new Error(data.error) : null, data.history);
+    worker.postMessage(pgn);
+  });
+}
 
 export default function TurningPoints() {
   const { token } = useAuth();
   const { logActivity } = useDashboard();
-  const [url, setUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [evaluations, setEvaluations] = useState([]); // absolute cp for white
-  const [blunders, setBlunders] = useState([]);
-  
-  const [savingIndex, setSavingIndex] = useState(null);
-  const [savedIndices, setSavedIndices] = useState([]);
-  const [activeTagSelect, setActiveTagSelect] = useState(null);
-  const [selectedTag, setSelectedTag] = useState('Pin');
-  
-  const handleSaveToVault = async (blunder) => {
-    if (!token) {
-      alert("Please log in to save puzzles.");
-      return;
-    }
-    setSavingIndex(blunder.index);
+  const [input, setInput] = useState('');
+  const [username, setUsername] = useState('');
+  const [month, setMonth] = useState('');
+  const [depth, setDepth] = useState(12);
+  const [progress, setProgress] = useState(null);
+  const [puzzles, setPuzzles] = useState(null);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(null);
+  const [saved, setSaved] = useState([]);
+  const [tags, setTags] = useState({});
+  const active = useRef(null);
+  const isChessCom = /^https:\/\/(www\.)?chess\.com\//i.test(input.trim());
+
+  useEffect(() => () => active.current?.abort(), []);
+
+  async function analyzeGame(event) {
+    event.preventDefault();
+    if (active.current) return;
+    const run = new AbortController();
+    active.current = run;
+    let engine;
+    setError('');
+    setPuzzles(null);
+    setSaved([]);
+    setTags({});
+    setProgress({ done: 0, total: 0 });
     try {
-      const res = await fetch(`${API_BASE_URL}/api/vault`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          fen: blunder.fenBefore,
-          initialMove: blunder.san,
-          tags: [selectedTag]
-        })
-      });
-      if (!res.ok) throw new Error('Failed to save');
-      setSavedIndices([...savedIndices, blunder.index]);
-      setActiveTagSelect(null);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to save to vault: ' + err.message);
-    } finally {
-      setSavingIndex(null);
-    }
-  };
-
-  const analyzeGame = async () => {
-    setIsLoading(true);
-    setProgress(0);
-    setEvaluations([]);
-    setBlunders([]);
-
-    try {
-      let pgn = '';
-      const trimmedUrl = url.trim();
-
-      // If input looks like a URL, fetch from backend; otherwise treat as raw PGN
-      if (trimmedUrl.startsWith('http')) {
-        const targetUrl = trimmedUrl || 'https://lichess.org/diwRghmF';
-        const res = await fetch(`${API_BASE_URL}/api/games/fetch`, {
+      let pgn = input.trim();
+      if (!pgn || /^https?:\/\//i.test(pgn)) {
+        const response = await fetch(`${API_BASE_URL}/api/games/fetch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: targetUrl })
+          body: JSON.stringify({ url: pgn || example, username: username.trim(), month }),
+          signal: run.signal,
         });
-        if (!res.ok) throw new Error('Failed to fetch PGN');
-        const data = await res.json();
-        pgn = data.pgn;
-      } else if (trimmedUrl.length > 0) {
-        // Raw PGN pasted directly
-        pgn = trimmedUrl;
-      } else {
-        // Fallback to a known game
-        const res = await fetch(`${API_BASE_URL}/api/games/fetch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: 'https://lichess.org/diwRghmF' })
-        });
-        if (!res.ok) throw new Error('Failed to fetch PGN');
-        const data = await res.json();
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not import the game.');
         pgn = data.pgn;
       }
-
-      // Normalize Lichess castling notation: O-O → 0-0 (chess.js expects zeros)
-      const normalizedPgn = pgn.replace(/O-O-O/g, '0-0-0').replace(/O-O/g, '0-0');
-      const chess = new Chess();
-      chess.loadPgn(normalizedPgn);
-      const history = chess.history({ verbose: true });
-      
-      const evals = [];
-      const blundersFound = [];
-      const worker = new Worker('/stockfish/stockfish-worker.js');
-      
-      await new Promise(r => {
-        worker.onmessage = e => {
-          if (e.data === 'ct-worker-ready') worker.postMessage('uci');
-          if (e.data === 'uciok') worker.postMessage('isready');
-          if (e.data === 'readyok') r();
-        };
-      });
-
-      const testChess = new Chess();
-      let prevAbsScore = 0; // Start at 0.00
-
-      for (let i = 0; i < history.length; i++) {
-        const move = history[i];
-        // Pass .san string instead of verbose object for chess.js v1 compatibility
-        testChess.move(move.san);
-        
-        worker.postMessage('stop');
-        worker.postMessage(`position fen ${testChess.fen()}`);
-        worker.postMessage(`go depth 10`);
-        
-        const score = await new Promise(r => {
-          let lastScore = null;
-          const handler = e => {
-            const line = e.data;
-            if (typeof line === 'string') {
-              if (line.startsWith('info') && line.includes('score')) {
-                const tokens = line.split(' ');
-                const scoreIdx = tokens.indexOf('score');
-                const type = tokens[scoreIdx + 1];
-                const val = Number(tokens[scoreIdx + 2]);
-                if (type === 'mate') lastScore = Math.sign(val) * 10000;
-                if (type === 'cp') lastScore = val;
-              }
-              if (line.startsWith('bestmove')) {
-                worker.removeEventListener('message', handler);
-                r(lastScore);
-              }
-            }
-          };
-          worker.addEventListener('message', handler);
-        });
-
-        if (score !== null) {
-          // Absolute score from white's perspective
-          const absScore = testChess.turn() === 'w' ? score : -score;
-          
-          const playerWhoMoved = testChess.turn() === 'w' ? 'b' : 'w';
-          const swing = absScore - prevAbsScore; 
-          const playerSwing = playerWhoMoved === 'w' ? swing : -swing;
-          
-          if (playerSwing < -150) {
-            const beforeChess = new Chess();
-            beforeChess.loadPgn(normalizedPgn);
-            for (let j = 0; j < i; j++) beforeChess.move(history[j].san);
-            
-            blundersFound.push({
-              index: i,
-              moveNumber: Math.floor(i / 2) + 1,
-              color: playerWhoMoved,
-              san: move.san,
-              fenBefore: beforeChess.fen(),
-              swing: playerSwing,
-            });
-          }
-          prevAbsScore = absScore;
-          evals.push(absScore);
-        } else {
-          evals.push(prevAbsScore);
+      if (pgn.length > 100_000) throw new Error('Use a single PGN game under 100,000 characters.');
+      const history = await parseGame(pgn, run.signal);
+      run.signal.throwIfAborted();
+      engine = createStockfishClient();
+      run.signal.addEventListener('abort', () => engine.close(), { once: true });
+      const positions = [history[0].before, ...history.map(move => move.after)];
+      const analyses = [];
+      for (const fen of positions) {
+        run.signal.throwIfAborted();
+        setProgress({ done: analyses.length, total: positions.length });
+        const position = new Chess(fen);
+        if (position.isCheckmate()) analyses.push({ evaluation: { type: 'mate', value: 0 } });
+        else if (position.isDraw()) analyses.push({ evaluation: { type: 'cp', value: 0 } });
+        else {
+          const analysis = await engine.analyze(fen, depth);
+          if (!analysis.evaluation) throw new Error('Stockfish returned no evaluation for a move.');
+          analyses.push(analysis);
         }
-        
-        setProgress(Math.round(((i + 1) / history.length) * 100));
       }
-      
-      worker.terminate();
-      setEvaluations(evals);
-      setBlunders(blundersFound);
-      
-      // Fire-and-forget log
-      logActivity('TURNING_POINTS_RUN', { blundersFound: blundersFound.length });
+      const found = findTurningPoints(history, analyses);
+      setPuzzles(found);
+      logActivity('TURNING_POINTS_RUN', { blundersFound: found.length });
     } catch (err) {
-      console.error(err);
-      alert('Failed to analyze game: ' + err.message);
+      if (!run.signal.aborted) setError(err.message);
     } finally {
-      setIsLoading(false);
+      engine?.close();
+      active.current = null;
+      setProgress(null);
     }
-  };
+  }
+
+  async function savePuzzle(puzzle) {
+    setSaving(puzzle.index);
+    setError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/vault`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          fen: puzzle.fenBefore, initialMove: puzzle.san, solutionPgn: puzzle.solutionPgn, tags: tags[puzzle.index] ?? ['Blunder'],
+        }),
+      });
+      if (!response.ok) throw new Error('Could not save the puzzle.');
+      setSaved(previous => [...previous, puzzle.index]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(null);
+    }
+  }
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900 mb-6">Turning Points</h1>
-
-      <div className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-6 mb-8">
-        <label className="text-xs font-medium uppercase tracking-wider text-slate-400 block mb-3">Lichess URL or Paste PGN</label>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && analyzeGame()}
-            placeholder="https://lichess.org/diwRghmF"
-            className="flex-1 px-4 py-2 ring-1 ring-slate-900/5 rounded-lg text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:ring-2 focus:ring-[#3b759e]"
-            disabled={isLoading}
-          />
-          <button 
-            onClick={analyzeGame}
-            disabled={isLoading}
-            className="px-6 py-2 bg-[#3b759e] text-white rounded-lg font-semibold text-sm hover:bg-[#2c5a7a] transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-            {isLoading ? `Analyzing ${progress}%` : 'Analyze'}
-          </button>
-        </div>
-      </div>
-
-      {evaluations.length > 0 && (
-        <div className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-6 mb-8">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-4">Evaluation Swing</h2>
-          <div className="h-48 relative ring-1 ring-slate-900/5 rounded-lg bg-slate-50 flex items-end gap-0.5 px-4 py-4 overflow-hidden">
-            {evaluations.map((score, i) => {
-              // Normalize score (-500 to +500 cp fits in 0-100% height)
-              let height = ((score + 500) / 1000) * 100;
-              height = Math.max(5, Math.min(95, height));
-              const isBlunder = blunders.some(b => b.index === i);
-              return (
-                <div
-                  key={i}
-                  className={`flex-1 rounded-t transition-colors ${
-                    isBlunder ? 'bg-red-500' : 'bg-[#3b759e]'
-                  } hover:opacity-75 relative group cursor-pointer`}
-                  style={{ height: `${height}%` }}
-                >
-                  <div className="hidden group-hover:block absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
-                    Move {Math.floor(i/2) + 1}{i%2===0?'.':'...'} {score > 0 ? '+' : ''}{(score/100).toFixed(2)}
-                  </div>
-                </div>
-              );
-            })}
+    <main className="p-4 md:p-8 space-y-6">
+      <h1 className="text-2xl font-semibold text-slate-900">Turning Points</h1>
+      <form onSubmit={analyzeGame} className="space-y-3 rounded-xl bg-white p-5 ring-1 ring-slate-200">
+        <label className="block text-sm font-medium">
+          Game link or PGN
+          <textarea value={input} onChange={e => setInput(e.target.value)} disabled={!!progress}
+            placeholder={example} rows={3} className="mt-1 w-full rounded-md border border-slate-300 p-2 font-mono text-sm" />
+        </label>
+        {isChessCom && (
+          <div className="flex flex-wrap gap-3">
+            <label className="text-sm">Either player’s Chess.com username
+              <input required value={username} onChange={e => setUsername(e.target.value)} disabled={!!progress}
+                className="block rounded border border-slate-300 p-2" />
+            </label>
+            <label className="text-sm">Month the game ended (UTC)
+              <input required type="month" value={month} onChange={e => setMonth(e.target.value)} disabled={!!progress}
+                className="block rounded border border-slate-300 p-2" />
+            </label>
           </div>
-          <div className="mt-3 flex gap-4 text-xs text-slate-500">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded" />
-              <span>Blunders detected</span>
+        )}
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-sm">Engine depth{' '}
+            <input type="number" min="4" max="18" value={depth} onChange={e => setDepth(e.target.valueAsNumber || 12)}
+              disabled={!!progress} className="w-16 rounded border border-slate-300 p-1" />
+          </label>
+          <button disabled={!!progress || saving !== null} className="rounded bg-[var(--ct-accent)] px-4 py-2 font-semibold text-white disabled:opacity-50">Analyze</button>
+          {progress && <button type="button" onClick={() => active.current?.abort()} className="underline">Cancel analysis</button>}
+        </div>
+        {progress && <p role="status" className="text-sm">{progress.total ? `Analyzed ${progress.done} of ${progress.total} positions` : 'Importing game…'}</p>}
+        {isChessCom && <p className="text-xs text-slate-500">ChessTrace is independent and unaffiliated with Chess.com.</p>}
+      </form>
+      {error && <p role="alert" className="text-red-700">{error}</p>}
+      {puzzles?.length === 0 && <p>No moves with a usable solution lost more than 150 centipawns.</p>}
+      {!!puzzles?.length && <section aria-label="Extracted puzzles" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {puzzles.map(puzzle => (
+          <article key={puzzle.index} className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+            <Board fen={puzzle.fenBefore} orientation={puzzle.color === 'w' ? 'white' : 'black'} interactive={false} viewOnly />
+            <div className="space-y-2 p-4">
+              <h2 className="font-semibold">Move {puzzle.moveNumber}{puzzle.color === 'w' ? '.' : '…'} {puzzle.san}</h2>
+              <p className="text-sm text-slate-600">{puzzle.mateSwing ? 'Forced mate swing' : `Lost ${(puzzle.loss / 100).toFixed(2)} pawns of evaluation`}</p>
+              <p className="text-sm">Engine move <strong>{puzzle.bestSan}</strong></p>
+              <MotifPicker value={tags[puzzle.index] ?? ['Blunder']} disabled={saving !== null || saved.includes(puzzle.index)}
+                onChange={value => setTags(previous => ({ ...previous, [puzzle.index]: value }))} />
+              <button type="button" disabled={saving !== null || saved.includes(puzzle.index)} onClick={() => savePuzzle(puzzle)}
+                className="rounded bg-[var(--ct-accent)] px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
+                {saved.includes(puzzle.index) ? 'Saved' : saving === puzzle.index ? 'Saving…' : 'Save to Vault'}
+              </button>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-[#3b759e] rounded" />
-              <span>Position evaluation</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {blunders.length > 0 && (
-        <div>
-          <h2 className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-4">Extracted Puzzles</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {blunders.map((blunder, i) => (
-              <div key={i} className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 overflow-hidden flex flex-col">
-                <div className="w-full aspect-square overflow-hidden">
-                  <Board fen={blunder.fenBefore} viewOnly orientation="white" />
-                </div>
-                <div className="p-4 flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm text-slate-900">
-                      Move {blunder.moveNumber} ({blunder.color === 'w' ? 'White' : 'Black'})
-                    </span>
-                    <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded">
-                      {blunder.san} ??
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Eval dropped by {(-blunder.swing / 100).toFixed(2)} pawns
-                  </p>
-                  {savedIndices.includes(blunder.index) ? (
-                    <div className="w-full mt-auto px-3 py-2 bg-slate-100 text-slate-500 flex justify-center items-center gap-2 text-xs font-semibold rounded-lg">
-                      <Check size={16} /> Saved
-                    </div>
-                  ) : activeTagSelect === blunder.index ? (
-                    <div className="mt-auto flex gap-2">
-                      <select 
-                        value={selectedTag} 
-                        onChange={e => setSelectedTag(e.target.value)}
-                        className="flex-1 px-2 py-1.5 text-xs ring-1 ring-slate-900/5 rounded-lg text-slate-900 bg-slate-50 outline-none focus:ring-2 focus:ring-[#3b759e]"
-                      >
-                        <option>Pin</option>
-                        <option>Fork</option>
-                        <option>Skewer</option>
-                        <option>Sacrifice</option>
-                        <option>Blunder</option>
-                      </select>
-                      <button 
-                        onClick={() => handleSaveToVault(blunder)}
-                        disabled={savingIndex === blunder.index}
-                        className="px-3 py-1.5 bg-[#3b759e] text-white text-xs font-semibold rounded-lg hover:bg-[#2c5a7a] flex items-center justify-center min-w-[60px] disabled:opacity-50"
-                      >
-                        {savingIndex === blunder.index ? <Loader2 size={14} className="animate-spin" /> : 'Save'}
-                      </button>
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={() => setActiveTagSelect(blunder.index)}
-                      className="w-full mt-auto px-3 py-2 bg-[#3b759e] text-white text-xs font-semibold rounded-lg hover:bg-[#2c5a7a] transition-colors flex items-center justify-center gap-2"
-                    >
-                      <BookmarkPlus size={16} />
-                      Save to Vault
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+          </article>
+        ))}
+      </section>}
+    </main>
   );
 }

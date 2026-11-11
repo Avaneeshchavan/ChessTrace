@@ -1,96 +1,105 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Chess } from 'chess.js';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Chess, DEFAULT_POSITION } from 'chess.js';
+import { SimilarPositions } from '../components/Board/SimilarPositions';
+import { MoveLedger } from '../components/Board/MoveLedger';
 import { Board } from '../components/Board/Board';
 import { EnginePanel } from '../components/EnginePanel/EnginePanel';
 import { useStockfish } from '../hooks/useStockfish';
+import { inspectSandboxFen } from '../utils/sandboxPosition';
+import { API_BASE_URL } from '../config/api';
 
 export default function Sandbox() {
-  const [fen, setFen] = useState('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-  const [isValid, setIsValid] = useState(true);
+  const [fen, setFen] = useState(DEFAULT_POSITION);
+  const [moves, setMoves] = useState([]);
+  const [moveError, setMoveError] = useState('');
+  const [result, setResult] = useState(null);
+  const [searchError, setSearchError] = useState('');
+  const [searching, setSearching] = useState(false);
+  const request = useRef(null);
+  const position = useMemo(() => inspectSandboxFen(fen), [fen]);
+  const engine = useStockfish(position.engineFen);
 
-  const chessRef = useRef(new Chess());
+  useEffect(() => () => request.current?.abort(), []);
 
-  const engine = useStockfish();
+  function changeFen(value, move) {
+    request.current?.abort();
+    setResult(null);
+    setSearchError('');
+    setSearching(false);
+    setMoveError('');
+    setFen(value);
+    setMoves(previous => move ? [...previous, move] : []);
+  }
 
-  useEffect(() => {
-    engine.evaluatePosition(fen);
-  }, [fen]);
-
-  const handleFenChange = (e) => {
-    const newFen = e.target.value;
-    setFen(newFen);
+  function movePiece(orig, dest) {
+    if (position.error) return false;
     try {
-      chessRef.current.load(newFen);
-      setIsValid(true);
+      const chess = new Chess(position.fen);
+      const move = chess.move({ from: orig, to: dest, promotion: 'q' });
+      changeFen(chess.fen(), move);
+      return true;
     } catch {
-      setIsValid(false);
+      setMoveError('That move is illegal in this position.');
+      return false;
     }
-  };
+  }
 
-  const handleMove = useCallback((orig, dest) => {
+  async function search() {
+    if (position.error) return;
+    const controller = new AbortController();
+    request.current?.abort();
+    request.current = controller;
+    setSearching(true);
+    setSearchError('');
     try {
-      const move = chessRef.current.move({ from: orig, to: dest, promotion: 'q' });
-      if (move) {
-        setFen(chessRef.current.fen());
-        setIsValid(true);
-      } else {
-        setFen(chessRef.current.fen());
-      }
-    } catch (e) {
-      setFen(chessRef.current.fen());
+      const response = await fetch(`${API_BASE_URL}/api/search?fen=${encodeURIComponent(position.fen)}`, { signal: controller.signal });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not search the database.');
+      if (!controller.signal.aborted) setResult(data);
+    } catch (error) {
+      if (!controller.signal.aborted) setSearchError(error.message);
+    } finally {
+      if (!controller.signal.aborted) setSearching(false);
     }
-  }, []);
+  }
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900 mb-6">Blueprint Sandbox</h1>
-
-      <div className="flex flex-col xl:flex-row gap-6">
-        {/* Left: Board Area */}
-        <div className="flex-1">
-          {/* FEN Input */}
-          <div className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-4 mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium uppercase tracking-wider text-slate-400">FEN Position</label>
-              <div className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md ${
-                isValid
-                  ? 'bg-[#3b759e]/10 ring-1 ring-[#3b759e]/30 text-[#3b759e]'
-                  : 'bg-red-50 ring-1 ring-red-200 text-red-600'
-              }`}>
-                <span className={`w-2 h-2 rounded-full ${isValid ? 'bg-[#3b759e]' : 'bg-red-500'}`} />
-                {isValid ? 'Valid Position' : 'Invalid Position'}
-              </div>
-            </div>
-            <input
-              type="text"
-              value={fen}
-              onChange={handleFenChange}
-              className="w-full px-3 py-2 text-xs bg-slate-50 ring-1 ring-slate-900/5 rounded-lg font-mono text-slate-700 outline-none transition focus:ring-2 focus:ring-[#3b759e]"
-            />
+    <main className="ct-workspace">
+      <header className="ct-workspace-header">
+        <h1>Sandbox</h1>
+        <p>Play through a position, compare matches, and explore the next move.</p>
+      </header>
+      <div className="sandbox-layout">
+        <section className="sandbox-board min-w-0 space-y-4">
+          <details className="sandbox-position">
+            <summary>Load a position (FEN)</summary>
+            <label className="mt-2 block text-sm font-medium">Position code
+              <span className="block text-sm font-normal text-slate-500">Paste a FEN to explore a specific position.</span>
+              <input type="text" value={fen} onChange={event => changeFen(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 p-2 font-mono text-xs" />
+            </label>
+          </details>
+          {position.error && <p role="status" className="text-sm text-red-700">{position.error} Matching games is unavailable until the position is valid.</p>}
+          <div className="max-w-xl">
+            <Board fen={position.chess?.fen() ?? '8/8/8/8/8/8/8/8'} onMove={movePiece}
+              interactive={!position.error} turnColor={position.chess?.turn() === 'b' ? 'black' : 'white'} viewOnly />
           </div>
-
-          {/* Board Mount */}
-          <div
-            id="board-mount"
-            className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-4"
-          >
-            <Board fen={fen} onMove={handleMove} interactive={true} />
-          </div>
-        </div>
-
-        {/* Right: Engine Panel */}
-        <div className="w-full xl:w-80 flex flex-col gap-6">
-          <EnginePanel
-            ready={engine.ready}
-            evaluation={engine.evaluation}
-            bestLine={engine.bestLine}
-            depth={engine.depth}
-            setDepth={engine.setDepth}
-            searchDepthReached={engine.searchDepthReached}
-            orientation="white"
-          />
-        </div>
+          {moveError && <p role="status" className="text-sm text-red-700">{moveError}</p>}
+          <button type="button" onClick={search} disabled={!!position.error || searching}
+            className="ct-button">
+            {searching ? 'Searching…' : 'Find matching games'}
+          </button>
+          {searchError && <p role="alert" className="text-sm text-red-700">{searchError}</p>}
+          {result && <p role="status" className="text-sm">{result.matches.length} {result.matchType === 'exact' ? 'exact' : 'similar'} positions found.</p>}
+        </section>
+        <section className="space-y-3">
+          <div className="ct-panel"><MoveLedger moves={moves} /></div>
+          {position.engineFen ? <EnginePanel {...engine} fen={position.engineFen} />
+            : <p className="rounded bg-slate-100 p-4 text-sm">Stockfish needs a position it can analyze safely. Check the FEN and try again.</p>}
+          {position.error && position.engineFen && <p className="text-sm text-slate-600">Stockfish is analyzing with corrected position metadata.</p>}
+        </section>
+        {!position.error && <div className="sandbox-similar"><SimilarPositions key={position.fen} fen={position.fen} /></div>}
       </div>
-    </div>
+    </main>
   );
 }

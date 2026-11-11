@@ -63,7 +63,8 @@ class BoardBox:
 
 def _fallback_whole_image(image: np.ndarray) -> BoardBox:
     h, w = image.shape[:2]
-    return BoardBox(x=0, y=0, w=w, h=h, method="fallback_whole_image")
+    side = min(h, w)
+    return BoardBox(x=(w - side) // 2, y=(h - side) // 2, w=side, h=side, method="fallback_whole_image")
 
 
 def detect_board(image: np.ndarray, min_area_fraction: float = 0.15) -> BoardBox:

@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  client:
+    if: github.event.repository.visibility == 'public'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: client-ui
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npm run build
+
+  api:
+    if: github.event.repository.visibility == 'public'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: api-server
+    env:
+      CHESSTRACE_LIVE_DB_TEST: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm test
+
+  vision:
+    if: github.event.repository.visibility == 'public'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: vision-engine
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
+      - run: python -m pip install -r requirements.txt
+      - run: python tests/test_pipeline.py
+      - run: python -m unittest discover -s tests -p test_detect.py

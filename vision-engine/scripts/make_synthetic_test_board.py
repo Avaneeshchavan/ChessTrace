@@ -22,7 +22,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from scripts.generate_templates import SHAPE_GLYPHS, THEME_COLORS, DEJAVU_SANS  # noqa: E402
+from scripts.generate_legacy_templates import SHAPE_GLYPHS, THEME_COLORS, DEJAVU_SANS  # noqa: E402
 
 SQUARE_COLORS = {
     "chesscom_neo": {"light": (238, 238, 210), "dark": (118, 150, 86)},  # RGB

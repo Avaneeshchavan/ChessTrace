@@ -1,23 +1,35 @@
-/* ChessTrace board — light theme for chessground.
-   Chessground renders the board grid as a background on <cg-board>,
-   not as individual <square> elements. We paint a CSS checkerboard
-   gradient instead via the 64-div React grid in Board.jsx. */
+/* Keep the texture, piece grid and review targets on the same square. */
 
-.ct-board-frame {
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 20px rgb(0, 0, 0, 0.03);
-  background: white;
+.ct-board-host.cg-wrap {
+  position: absolute;
+  inset: 0;
 }
 
-.ct-board-frame cg-board {
-  background-color: transparent !important;
-  background-image: none !important;
+.ct-board-frame {
+  border: 1px solid var(--ct-line);
+  border-radius: var(--ct-radius);
+  box-shadow: var(--ct-shadow);
+  background: var(--ct-panel);
+}
+
+.ct-board-surface {
+  background: #9b714b url('../../assets/boards/walnut.webp') center / 100% 100% no-repeat;
+}
+
+.ct-board-surface cg-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.ct-board-surface cg-board {
+  background-color: transparent;
+  background-image: none;
 }
 
 /* Coordinates outside the board */
 .cg-wrap coords {
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  color: #94a3b8 !important;
+  font-family: var(--ct-font-code);
+  color: var(--ct-muted) !important;
   font-weight: 600 !important;
   font-size: 12px;
 }
@@ -38,10 +50,10 @@
 /* Chessground creates dynamic <square> elements only for selections
    and move destinations — these selectors are still valid. */
 square.selected {
-  background: rgba(89, 128, 150, 0.35) !important;
+  background: #e2ad7270 !important;
 }
 square.move-dest {
-  background: radial-gradient(rgba(89, 128, 150, 0.25) 22%, transparent 24%) !important;
+  background: radial-gradient(#211d1860 22%, transparent 24%) !important;
 }
 
 /* Low-confidence squares from Phase 2 — dashed red outline */
@@ -51,14 +63,6 @@ square.ct-lowconf::after {
   inset: 3px;
   border: 2px dashed #ef4444;
   pointer-events: none;
-}
-
-/* ─── Chessground board square colors ─── */
-cg-board square.white {
-  background-color: #c7d5e0 !important;
-}
-cg-board square.black {
-  background-color: #598096 !important;
 }
 
 /* ─── Piece images ─── */
@@ -109,9 +113,9 @@ cg-board piece {
 
 /* Right-click drawable arrows: tournament green theme */
 cg-board .cg-shapes svg .cg-arrow {
-  stroke: rgba(89, 128, 150, 0.75);
+  stroke: #e2ad72bf;
 }
 cg-board .cg-shapes svg .cg-circle {
-  stroke: rgba(89, 128, 150, 0.75);
+  stroke: #e2ad72bf;
 }
 
