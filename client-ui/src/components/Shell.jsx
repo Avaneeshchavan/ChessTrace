@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Eye, Grid3x3, Home, LogOut, Menu, Settings, TrendingUp, X, Zap } from 'lucide-react';
 import ChessTraceLogo from './ChessTraceLogo';
 import { useAuth } from '../context/AuthContext';
-import { useServiceHealth } from '../hooks/useServiceHealth';
+import ServiceHealthBanner from './ServiceHealthBanner';
 import { API_BASE_URL } from '../config/api';
 
 const navItems = [
@@ -17,7 +17,6 @@ const navItems = [
 
 export function Shell() {
   const { logout } = useAuth();
-  const { status } = useServiceHealth(API_BASE_URL);
   const { pathname } = useLocation();
   const [menuPath, setMenuPath] = useState(null);
   const menuOpen = menuPath === pathname;
@@ -44,7 +43,7 @@ export function Shell() {
         </div>
       </aside>
       <div className="study-content" id="study-main" tabIndex={-1}>
-        {status === 'waking' && <p role="status" className="study-health">Reconnecting to the game database…</p>}
+        <ServiceHealthBanner url={API_BASE_URL} />
         <Outlet />
       </div>
     </div>

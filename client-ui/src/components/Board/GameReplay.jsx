@@ -1,3 +1,4 @@
+import { fetchService } from '../../config/serviceRequest';
 import { useEffect, useState } from 'react';
 import { Chess } from 'chess.js';
 import { API_BASE_URL } from '../../config/api';
@@ -13,7 +14,7 @@ export function GameReplay({ match }) {
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/search/games/${match.gameId}`, { signal: controller.signal });
+        const response = await fetchService(API_BASE_URL, `/api/search/games/${match.gameId}`, { signal: controller.signal });
         if (!response.ok) throw new Error('The game is unavailable for replay.');
         const { pgn } = await response.json();
         const chess = new Chess();

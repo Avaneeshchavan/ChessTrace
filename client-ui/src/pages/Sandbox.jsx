@@ -1,3 +1,4 @@
+import { fetchService } from '../config/serviceRequest';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Chess, DEFAULT_POSITION } from 'chess.js';
 import { SimilarPositions } from '../components/Board/SimilarPositions';
@@ -52,7 +53,7 @@ export default function Sandbox() {
     setSearching(true);
     setSearchError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/search?fen=${encodeURIComponent(position.fen)}`, { signal: controller.signal });
+      const response = await fetchService(API_BASE_URL, `/api/search?fen=${encodeURIComponent(position.fen)}`, { signal: controller.signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not search the database.');
       if (!controller.signal.aborted) setResult(data);

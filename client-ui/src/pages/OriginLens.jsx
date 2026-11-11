@@ -1,7 +1,9 @@
+import { fetchService } from '../config/serviceRequest';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, AlertTriangle, Search, Loader2, ArrowUpRight } from 'lucide-react';
 import { GameReplay } from '../components/Board/GameReplay';
 import { ScreenshotReview } from '../components/Board/ScreenshotReview';
+import ServiceHealthBanner from '../components/ServiceHealthBanner';
 import { useServiceHealth } from '../hooks/useServiceHealth';
 
 import { API_BASE_URL as API_URL, VISION_ENGINE_URL as VISION_URL } from '../config/api';
@@ -52,7 +54,7 @@ export default function OriginLens() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const visionRes = await fetch(`${VISION_URL}/parse-screenshot`, {
+      const visionRes = await fetchService(VISION_URL, `/parse-screenshot`, {
         method: 'POST',
         body: formData,
         signal: request.signal,
@@ -83,8 +85,7 @@ export default function OriginLens() {
     setReplay(null);
     setPhase('searching');
     try {
-      const searchRes = await fetch(
-        `${API_URL}/api/search?fen=${encodeURIComponent(fen)}`,
+      const searchRes = await fetchService(API_URL, `/api/search?fen=${encodeURIComponent(fen)}`,
         { signal: request.signal },
       );
 
@@ -143,12 +144,7 @@ export default function OriginLens() {
       </header>
       <div className="lens-layout">
         <section className="space-y-3 min-w-0" aria-label="Position input">
-          {visionHealthStatus === 'waking' && (
-            <p role="status" className="ct-panel p-3 text-sm text-accent">The vision service is waking up. Upload will be available shortly.</p>
-          )}
-          {visionHealthStatus === 'error' && (
-            <p role="alert" className="ct-panel p-3 text-sm text-red-700">The vision service is unavailable. <button type="button" className="underline" onClick={() => window.location.reload()}>Retry connection</button></p>
-          )}
+          <ServiceHealthBanner url={VISION_URL} label="image scanner" />
           <div className="ct-panel lens-upload" data-has-result={!!visionResult}
             onDrop={event => { if (uploadDisabled) event.preventDefault(); else handleDrop(event); }}
             onDragOver={event => { event.preventDefault(); if (!uploadDisabled) setDragOver(true); }}

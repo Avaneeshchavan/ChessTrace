@@ -1,3 +1,4 @@
+import { fetchService } from '../config/serviceRequest';
 import { createContext, useContext, useState } from 'react';
 import { API_BASE_URL } from '../config/api';
 
@@ -11,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   });
 
   const login = async (email, password) => {
-    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const res = await fetchService(API_BASE_URL, `/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -28,7 +29,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password, displayName) => {
-    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    const res = await fetchService(API_BASE_URL, `/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, displayName }),

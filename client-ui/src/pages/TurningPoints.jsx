@@ -1,3 +1,4 @@
+import { fetchService } from '../config/serviceRequest';
 import { useEffect, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
 import { MotifPicker } from '../components/Vault/MotifPicker';
@@ -60,7 +61,7 @@ export default function TurningPoints() {
     try {
       let pgn = input.trim();
       if (!pgn || /^https?:\/\//i.test(pgn)) {
-        const response = await fetch(`${API_BASE_URL}/api/games/fetch`, {
+        const response = await fetchService(API_BASE_URL, `/api/games/fetch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: pgn || example, username: username.trim(), month }),
@@ -105,7 +106,7 @@ export default function TurningPoints() {
     setSaving(puzzle.index);
     setError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vault`, {
+      const response = await fetchService(API_BASE_URL, `/api/vault`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({

@@ -1,3 +1,4 @@
+import { fetchService } from '../config/serviceRequest';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react';
@@ -21,7 +22,7 @@ export default function VaultReview() {
     let isMounted = true;
     async function fetchQueue() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/vault/review-queue`, {
+        const res = await fetchService(API_BASE_URL, `/api/vault/review-queue`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch review queue');
@@ -49,7 +50,7 @@ export default function VaultReview() {
     
     const puzzle = queue[currentIndex];
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vault/${puzzle.id}/review`, {
+      const response = await fetchService(API_BASE_URL, `/api/vault/${puzzle.id}/review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

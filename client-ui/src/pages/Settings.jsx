@@ -1,3 +1,4 @@
+import { fetchService } from '../config/serviceRequest';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config/api';
@@ -32,7 +33,7 @@ export default function Settings() {
     async function fetchSummary() {
       if (status !== 'awake') return;
       try {
-        const res = await fetch(`${API_BASE_URL}/api/users/me/summary`, {
+        const res = await fetchService(API_BASE_URL, `/api/users/me/summary`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
         if (res.status === 401) {
@@ -68,7 +69,7 @@ export default function Settings() {
     setSavingName(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+      const res = await fetchService(API_BASE_URL, `/api/users/me`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +115,7 @@ export default function Settings() {
     setSavingPassword(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/users/me/password`, {
+      const res = await fetchService(API_BASE_URL, `/api/users/me/password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

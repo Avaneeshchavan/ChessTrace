@@ -1,3 +1,4 @@
+import { fetchService } from '../config/serviceRequest';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Filter, Loader2, Play } from 'lucide-react';
@@ -58,9 +59,9 @@ export default function PatternVault() {
       if (status !== 'awake') return;
       try {
         const [vaultRes, reviewRes, statsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/vault`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }),
-          fetch(`${API_BASE_URL}/api/vault/review-queue`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${API_BASE_URL}/api/vault/review-stats`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
+          fetchService(API_BASE_URL, `/api/vault`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }),
+          fetchService(API_BASE_URL, `/api/vault/review-queue`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetchService(API_BASE_URL, `/api/vault/review-stats`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
         ]);
         
         if (vaultRes.status === 401 || reviewRes.status === 401) {
@@ -98,7 +99,7 @@ export default function PatternVault() {
     setSaving(true);
     setTagError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vault/${edit.id}/tags`, {
+      const response = await fetchService(API_BASE_URL, `/api/vault/${edit.id}/tags`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ tags: edit.tags }),

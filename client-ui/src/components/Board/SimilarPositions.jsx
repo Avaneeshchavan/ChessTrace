@@ -1,3 +1,4 @@
+import { fetchService } from '../../config/serviceRequest';
 import { useEffect, useRef, useState } from 'react';
 import { API_BASE_URL } from '../../config/api';
 import { GameReplay } from './GameReplay';
@@ -22,7 +23,7 @@ export function SimilarPositions({ fen }) {
     setLoading(kind);
     setError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/search${path}`, { signal: controller.signal });
+      const response = await fetchService(API_BASE_URL, `/api/search${path}`, { signal: controller.signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not load results.');
       if (!controller.signal.aborted) handle(data);

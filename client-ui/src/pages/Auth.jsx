@@ -1,3 +1,5 @@
+import ServiceHealthBanner from '../components/ServiceHealthBanner';
+import { API_BASE_URL } from '../config/api';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ChessTraceLogo from '../components/ChessTraceLogo';
@@ -51,6 +53,8 @@ export default function Auth() {
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
           </p>
         </div>
+
+        <ServiceHealthBanner url={API_BASE_URL} />
 
         {error && (
           <div className="mt-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm font-medium border border-red-100">
