@@ -30,4 +30,23 @@ The API exited with an error when started against a disposable schema without se
 
 Chrome verified a simulated API wake-up and the responsive banner on the local client at [1280px](m4/cold-start-1280.png) and [390px](m4/cold-start-390.png).
 
-Render and Vercel sign-in is needed to configure the live services. Production verifier output, live 390px capture, hosted peak memory, and real cold-start timing are pending.
+On November 11, 2026, production ran the M4 release at `5009082`. The verifier exited with code 0 against the Vercel Hobby client, both Render Free services, and Neon Free. Its output was:
+
+```text
+PASS deep link /lens
+PASS deep link /vault
+PASS Stockfish WASM MIME and caching
+PASS vision health
+PASS API health
+PASS preflight /api/vault
+PASS preflight /parse-screenshot
+PASS exact search
+PASS similarity search
+PASS replay fetch
+PASS synthetic screenshot parse
+PASS register and login
+PASS save puzzle
+PASS due queue
+```
+
+The production probe created one synthetic account and one saved puzzle. Hosted peak memory and real cold-start timing were not measured. External uptime monitoring is documented above and remains pending.
