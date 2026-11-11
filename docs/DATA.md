@@ -17,7 +17,9 @@ Capacity measured on Neon on 2026-11-11 using the first 1,000 distinct, replayab
 
 400 MB means 400,000,000 bytes here. Keep it as a project budget: [Neon's current Free plan announcement](https://neon.com/blog/neon-free-plan-1-gb-per-project) lists 1 GB per project, while PostgreSQL's database size is not the same metric as Neon project storage. These estimates assume comparable game length and index density. The sample had a freshly built HNSW index; incremental ingestion, longer PGNs, existing data and growth can use more space. The ingest stage reached about 1,307 positions/s for this run, excluding index construction.
 
-**Start with up to 2,000 new curated games across all files.** At the measured density that is about 90 MB of additional relations, leaving about 67 MB under the 400 MB budget. Remeasure on the curated files and check actual Neon project usage before expanding.
+**Current Neon target: pause new corpus imports at the 400 MB budget.** After the HNSW rebuild on 2026-11-11, PostgreSQL reported 391,241,728 bytes in the database, including the valid 147,824,640-byte HNSW index. That leaves about 8.76 MB, or a theoretical 194 additional games at the measured density, before allowing for growth. The pre-rebuild projection above is historical.
+
+For a separate target with enough headroom, start with up to 2,000 curated games across all files (about 90 MB at the measured density). Remeasure on the curated files and check actual Neon project usage before importing.
 
 ## What to download
 
@@ -40,7 +42,7 @@ node scripts/measure-capacity.js data/legendary_sacrifices.pgn --games 1000
 node scripts/measure-capacity.js data/corpus/strong-classical.pgn --games 1000 --min-elo 2400 --completed-only
 ```
 
-The importer writes to the app database by default. Only run it after choosing the target and reviewing the capacity results:
+The importer writes to the app database by default. The command below assumes a separate target with enough space or an explicitly revised budget; do not run it against the current target under the 400 MB budget:
 
 ```sh
 node scripts/ingest.js data/corpus/strong-classical.pgn --batch-size 25 --position-chunk 4000 --min-elo 2400 --completed-only --max-games 2000

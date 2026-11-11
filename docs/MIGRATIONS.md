@@ -4,6 +4,8 @@ Neon initially failed to connect, then became reachable during verification. A r
 
 ## Recovering the existing Neon database (verified 2026-11-11)
 
+**Resolved on 2026-11-11.** The checked baseline was marked applied, the original idempotent SQL restored the HNSW index, and Prisma applied `0002_saved_puzzle_sm2`. Prisma reports the schema is up to date. Both the live vault workflow and the live exact/ANN search smoke check passed. The rebuilt index is valid; see [DATA.md](DATA.md) for the updated storage budget. The sequence below is a record for recovery; do not repeat the baseline step on this database.
+
 The pasted run got P1001 while connecting to Neon, so the baseline was not recorded before `migrate deploy` tried to create the existing `ActivityType` enum (P3018 / 42710). The latest read-only check found a failed `0000_initial_schema` record, no SM-2 columns, and an empty diff against the pre-SM-2 schema. The manual HNSW migration is recorded as applied, but its named index is absent. Do not reset the database or rerun the baseline SQL.
 
 From the repository root, use this fail-fast sequence for that verified state. It contains no shell comment lines, so it can be pasted into interactive zsh. Stop if a step fails; in particular, reconnect or wake Neon before retrying a P1001. If the baseline has since been marked applied, skip the resolve step.
