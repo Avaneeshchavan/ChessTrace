@@ -8,7 +8,7 @@ const RESULTS = new Set(['1-0', '0-1', '1/2-1/2']);
 const MAX_GAME_BYTES = 2 * 1024 * 1024;
 
 async function* streamGames(file) {
-  const input = fs.createReadStream(file, { encoding: 'utf8' });
+  const input = typeof file === 'string' ? fs.createReadStream(file, { encoding: 'utf8' }) : file;
   const lines = readline.createInterface({ input, crlfDelay: Infinity });
   let headers = {}, body = [], bytes = 0, inComment = false;
   try {
@@ -45,7 +45,7 @@ function elo(value) {
 }
 
 function prepareGame({ headers, body }, { minElo = 0, completedOnly = false,
-  maxPly = Infinity, vectorMinPly = 1, vectorMaxPly = Infinity,
+  maxPly = Infinity, vectorMinPly = 1, vectorMaxPly = Infinity, includeMovetext = false,
 } = {}) {
   const whiteElo = elo(headers.WhiteElo), blackElo = elo(headers.BlackElo);
   if (minElo && ((whiteElo ?? 0) < minElo || (blackElo ?? 0) < minElo)) return null;
@@ -90,6 +90,7 @@ function prepareGame({ headers, body }, { minElo = 0, completedOnly = false,
     pgn,
     legacyPgn: `${tags}\n\n${body.join(' ')}`,
     positions,
+    ...(includeMovetext && { movetext: [moves[0].before.split(' ').slice(0, 4).join(' '), ...moves.map(move => move.lan)] }),
   };
 }
 

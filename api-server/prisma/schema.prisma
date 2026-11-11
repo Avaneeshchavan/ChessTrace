@@ -150,6 +150,8 @@ model CompactGame {
   eco     String?
   startFen String?       @map("start_fen")
   positions PositionGame[]
+  movetextHash Bytes? @unique @map("movetext_hash")
+  sourceId String? @map("source_id")
 
   @@map("compact_game")
 }
@@ -173,4 +175,36 @@ model PositionGame {
 
   @@id([key, gameId])
   @@map("position_game")
+}
+
+
+model CorpusGameStage {
+  hash String?
+  whiteName String?
+  blackName String?
+  whiteElo Int?
+  blackElo Int?
+  playedAt DateTime?
+  event String?
+  result String?
+  pgn String?
+  gzip String?
+  opening String?
+  eco String?
+  startFen String?
+  originalHash String?
+
+  @@ignore
+  @@map("corpus_game_stage")
+}
+
+model CorpusPositionStage {
+  key BigInt?
+  gameId Int?
+  ply Int? @db.SmallInt
+  fenCore String?
+  vector String?
+
+  @@ignore
+  @@map("corpus_position_stage")
 }
