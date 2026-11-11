@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Chess } from 'chess.js';
 import { API_BASE_URL } from '../../config/api';
-import { Board } from './Board';
+import { GameReplay } from './GameReplay';
 
 const decades = Array.from({ length: 43 }, (_, i) => 2020 - 10 * i);
 
@@ -42,23 +41,6 @@ export function SimilarPositions({ fen }) {
     load(`/similar?${query}`, 'search', ({ matches }) => setMatches(matches));
   }
 
-  function openReplay(match) {
-    setReplay(null);
-    load(`/games/${match.gameId}`, match.id, ({ pgn }) => {
-      const chess = new Chess();
-      try {
-        chess.loadPgn(pgn);
-      } catch {
-        throw new Error('The stored game could not be replayed.');
-      }
-      const moves = chess.history({ verbose: true });
-      if (!moves.length || match.halfMove > moves.length) {
-        throw new Error('The matching move is unavailable in the stored game.');
-      }
-      setReplay({ match, moves, ply: match.halfMove });
-    });
-  }
-
   return (
     <section className="space-y-4 rounded-xl bg-white p-4 ring-1 ring-slate-200">
       <h2 className="font-semibold">Similar positions</h2>
@@ -73,7 +55,7 @@ export function SimilarPositions({ fen }) {
             {decades.map(year => <option key={year} value={year}>{year}s</option>)}
           </select>
         </label>
-        <button disabled={loading === 'search'} className="rounded bg-[#3b759e] px-3 py-2 font-medium text-white disabled:opacity-50">
+        <button disabled={loading === 'search'} className="rounded bg-[var(--ct-accent)] px-3 py-2 font-medium text-white disabled:opacity-50">
           {loading === 'search' ? 'Searching…' : 'Find similar positions'}
         </button>
       </form>
@@ -83,7 +65,7 @@ export function SimilarPositions({ fen }) {
       {!!matches?.length && <ol className="divide-y divide-slate-200">
         {matches.map(match => (
           <li key={match.id}>
-            <button type="button" onClick={() => openReplay(match)} aria-pressed={replay?.match.id === match.id}
+            <button type="button" onClick={() => setReplay(match)} aria-pressed={replay?.id === match.id}
               className="flex w-full flex-wrap items-center justify-between gap-2 py-3 text-left text-sm hover:bg-slate-50">
               <span>
                 <strong>{match.whiteName} vs. {match.blackName}</strong>
@@ -92,24 +74,12 @@ export function SimilarPositions({ fen }) {
                     `Move ${match.moveNumber}${match.mover === 'black' ? '…' : '.'}`, match.result].filter(Boolean).join(' · ')}
                 </span>
               </span>
-              <span className="text-xs text-sky-800">{loading === match.id ? 'Loading replay…' : `${Math.round(match.similarity * 100)}% · Replay`}</span>
+              <span className="text-xs text-sky-800">{Math.round(match.similarity * 100)}% · Replay</span>
             </button>
           </li>
         ))}
       </ol>}
-      {replay && (
-        <section aria-label="Game replay" className="max-w-md space-y-2">
-          <h3 className="text-sm font-semibold">{replay.match.whiteName} vs. {replay.match.blackName}</h3>
-          <Board fen={replay.ply ? replay.moves[replay.ply - 1].after : replay.moves[0].before} interactive={false} viewOnly />
-          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <button type="button" disabled={!replay.ply} onClick={() => setReplay(value => ({ ...value, ply: value.ply - 1 }))}
-              className="underline disabled:opacity-50">Previous move</button>
-            <span>{replay.ply ? replay.moves[replay.ply - 1].san : 'Start'} · {replay.ply}/{replay.moves.length}</span>
-            <button type="button" disabled={replay.ply >= replay.moves.length} onClick={() => setReplay(value => ({ ...value, ply: value.ply + 1 }))}
-              className="underline disabled:opacity-50">Next move</button>
-          </div>
-        </section>
-      )}
+      {replay && <GameReplay key={replay.id} match={replay} />}
     </section>
   );
 }

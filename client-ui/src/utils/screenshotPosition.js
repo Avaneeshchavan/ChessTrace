@@ -25,6 +25,12 @@ const castleHome = {
   q: ['e8', 'bK', 'a8', 'bR'],
 };
 
+export function availableCastling(squares) {
+  return Object.entries(castleHome).filter(([, [king, k, rook, r]]) =>
+    squares[king]?.piece === k && squares[rook]?.piece === r,
+  ).map(([flag]) => flag);
+}
+
 export function reviewPosition(squares, turn, castling) {
   const ranks = [];
   for (let rank = 0; rank < 8; rank++) {
@@ -38,9 +44,7 @@ export function reviewPosition(squares, turn, castling) {
     }
     ranks.push(row + (empty || ''));
   }
-  const rights = Object.entries(castleHome).filter(([flag, [king, k, rook, r]]) =>
-    castling.includes(flag) && squares[king]?.piece === k && squares[rook]?.piece === r,
-  ).map(([flag]) => flag).join('') || '-';
+  const rights = availableCastling(squares).filter(flag => castling.includes(flag)).join('') || '-';
   const fen = `${ranks.join('/')} ${turn} ${rights} - 0 1`;
   const validity = validateFen(fen);
   if (!validity.ok) return { fen, error: validity.error };

@@ -158,12 +158,12 @@ export default function Settings() {
         {/* SECTION 1: Account Summary */}
         <div className="bg-white rounded-xl shadow-sm p-6 ring-1 ring-slate-900/5">
           {status === 'waking' || status === 'checking' ? (
-            <div className="flex flex-col items-center justify-center h-64 text-[#3b759e]">
+            <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
               <div className="animate-pulse font-medium">Waiting for servers to wake up...</div>
             </div>
           ) : loadingSummary ? (
             <div className="flex justify-center p-4">
-              <Loader2 size={24} className="text-[#3b759e] animate-spin" />
+              <Loader2 size={24} className="text-[var(--ct-accent)] animate-spin" />
             </div>
           ) : summaryError ? (
             <div className="text-red-500 text-sm">{summaryError}</div>
@@ -202,7 +202,7 @@ export default function Settings() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 maxLength={50}
-                className="h-10 w-full max-w-sm rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#3b759e] focus:ring-1 focus:ring-[#3b759e]"
+                className="h-10 w-full max-w-sm rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--ct-accent)] focus:ring-1 focus:ring-[var(--ct-accent)]"
               />
               {nameError && (
                 <p className="mt-2 text-sm text-red-600">{nameError}</p>
@@ -213,7 +213,7 @@ export default function Settings() {
               <button
                 type="submit"
                 disabled={!isNameChanged || savingName}
-                className="h-10 px-4 rounded-lg bg-[#3b759e] text-sm font-semibold text-white shadow-sm transition hover:bg-[#2c5a7a] focus:outline-none focus:ring-2 focus:ring-[#3b759e] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
+                className="h-10 px-4 rounded-lg bg-[var(--ct-accent)] text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--ct-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--ct-accent)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
               >
                 {savingName ? <Loader2 size={16} className="animate-spin" /> : 'Save'}
               </button>
@@ -239,7 +239,7 @@ export default function Settings() {
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
-                className={`h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-900 outline-none transition focus:ring-1 ${currentPasswordError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-[#3b759e] focus:ring-[#3b759e]'}`}
+                className={`h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-900 outline-none transition focus:ring-1 ${currentPasswordError ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-[var(--ct-accent)] focus:ring-[var(--ct-accent)]'}`}
               />
               {currentPasswordError && (
                 <p className="mt-1 text-sm text-red-600">{currentPasswordError}</p>
@@ -256,7 +256,7 @@ export default function Settings() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
-                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#3b759e] focus:ring-1 focus:ring-[#3b759e]"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--ct-accent)] focus:ring-1 focus:ring-[var(--ct-accent)]"
               />
             </div>
 
@@ -270,7 +270,7 @@ export default function Settings() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[#3b759e] focus:ring-1 focus:ring-[#3b759e]"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--ct-accent)] focus:ring-1 focus:ring-[var(--ct-accent)]"
               />
             </div>
 
@@ -282,7 +282,7 @@ export default function Settings() {
               <button
                 type="submit"
                 disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword}
-                className="h-10 px-4 rounded-lg bg-[#3b759e] text-sm font-semibold text-white shadow-sm transition hover:bg-[#2c5a7a] focus:outline-none focus:ring-2 focus:ring-[#3b759e] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[140px]"
+                className="h-10 px-4 rounded-lg bg-[var(--ct-accent)] text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--ct-accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--ct-accent)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[140px]"
               >
                 {savingPassword ? <Loader2 size={16} className="animate-spin" /> : 'Update Password'}
               </button>

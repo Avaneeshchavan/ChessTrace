@@ -27,7 +27,7 @@ function SolveRate({ weeks }) {
             <li key={week} className="grid grid-cols-[6rem_1fr_auto] items-center gap-2">
               <time dateTime={week}>{week}</time>
               <div className="h-3 overflow-hidden rounded bg-slate-100" aria-hidden="true">
-                <div className="h-full bg-[#3b759e]" style={{ width: `${100 * solved / attempts}%` }} />
+                <div className="h-full bg-[var(--ct-accent)]" style={{ width: `${100 * solved / attempts}%` }} />
               </div>
               <span>{Math.round(100 * solved / attempts)}% ({solved}/{attempts})</span>
             </li>
@@ -126,12 +126,12 @@ export default function PatternVault() {
 
       {/* Review Banner */}
       {reviewCount > 0 && (
-        <div className="bg-[#3b759e]/10 border border-[#3b759e]/30 rounded-xl p-6 mb-8 flex items-center justify-between shadow-sm">
+        <div className="bg-[var(--ct-accent)]/10 border border-[var(--ct-accent)]/30 rounded-xl p-6 mb-8 flex items-center justify-between shadow-sm">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Spaced Repetition Review</h2>
             <p className="text-slate-600 text-sm mt-1">You have {reviewCount} puzzle{reviewCount !== 1 ? 's' : ''} queued for review.</p>
           </div>
-          <Link to="/vault/review" className="bg-[#3b759e] hover:bg-[#2c5a7a] text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-colors">
+          <Link to="/vault/review" className="bg-[var(--ct-accent)] hover:bg-[var(--ct-accent-hover)] text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-colors">
             <Play size={18} fill="currentColor" /> Start Review
           </Link>
         </div>
@@ -147,7 +147,7 @@ export default function PatternVault() {
         <select 
           value={selectedMotif}
           onChange={(e) => setSelectedMotif(e.target.value)}
-          className="px-3 py-2 text-sm ring-1 ring-slate-900/5 rounded-lg text-slate-900 bg-slate-50 hover:bg-white outline-none transition focus:ring-2 focus:ring-[#3b759e]"
+          className="px-3 py-2 text-sm ring-1 ring-slate-900/5 rounded-lg text-slate-900 bg-slate-50 hover:bg-white outline-none transition focus:ring-2 focus:ring-[var(--ct-accent)]"
         >
           {motifs.map((m) => (
             <option key={m}>{m}</option>
@@ -156,7 +156,7 @@ export default function PatternVault() {
       </div>
 
       {status === 'waking' || status === 'checking' ? (
-        <div className="flex flex-col items-center justify-center h-64 text-[#3b759e]">
+        <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
           <div className="animate-pulse font-medium">Waiting for servers to wake up...</div>
         </div>
       ) : status === 'error' ? (
@@ -179,7 +179,7 @@ export default function PatternVault() {
               <div className="p-4 flex-1 flex flex-col">
                 <div className="flex flex-wrap gap-2 mb-3">
                   {puzzle.tags.map(tag => (
-                    <span key={tag.id} className="bg-[#7B4B2A] text-white text-xs font-semibold px-2 py-1 rounded">
+                    <span key={tag.id} className="bg-[var(--ct-accent)] text-white text-xs font-semibold px-2 py-1 rounded">
                       {tag.name}
                     </span>
                   ))}
@@ -196,7 +196,7 @@ export default function PatternVault() {
                   setEdit({ id: puzzle.id, tags: puzzle.tags.map(tag => tag.name) });
                 }} className="mb-3 self-start text-sm underline">Edit motifs</button>}
                 <div className="mt-auto">
-                  <div className="text-xs font-semibold px-2 py-1 rounded w-fit bg-[#3b759e] text-white mb-2">
+                  <div className="text-xs font-semibold px-2 py-1 rounded w-fit bg-[var(--ct-accent)] text-white mb-2">
                     {new Date(puzzle.nextReviewAt) <= new Date() ? 'Due now' : `Due ${new Date(puzzle.nextReviewAt).toLocaleDateString()}`}
                   </div>
                   <div className="text-[10px] text-slate-400">Added {new Date(puzzle.createdAt).toLocaleDateString()}</div>

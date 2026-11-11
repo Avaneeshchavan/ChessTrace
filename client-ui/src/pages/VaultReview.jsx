@@ -74,7 +74,7 @@ export default function VaultReview() {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 h-[calc(100vh-64px)]">
-        <Loader2 size={48} className="text-[#3b759e] animate-spin" />
+        <Loader2 size={48} className="text-[var(--ct-accent)] animate-spin" />
       </div>
     );
   }
@@ -92,7 +92,7 @@ export default function VaultReview() {
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">You're all caught up!</h2>
           <p className="text-slate-500">0 puzzles due for review right now.</p>
         </div>
-        <Link to="/vault" className="inline-flex items-center justify-center gap-2 bg-[#3b759e] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#2c5a7a] transition-colors w-full">
+        <Link to="/vault" className="inline-flex items-center justify-center gap-2 bg-[var(--ct-accent)] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[var(--ct-accent-hover)] transition-colors w-full">
           <ArrowLeft size={18} /> Back to Vault
         </Link>
       </div>
@@ -154,7 +154,7 @@ export default function VaultReview() {
           {!isRevealed ? (
             <button 
               onClick={() => setIsRevealed(true)}
-              className="w-full bg-[#3b759e] hover:bg-[#2c5a7a] text-white py-4 rounded-xl font-bold text-lg transition-colors shadow-sm"
+              className="w-full bg-[var(--ct-accent)] hover:bg-[var(--ct-accent-hover)] text-white py-4 rounded-xl font-bold text-lg transition-colors shadow-sm"
             >
               Reveal Answer
             </button>
@@ -182,21 +182,21 @@ export default function VaultReview() {
                 <button 
                   disabled={isSubmitting}
                   onClick={() => handleRate(3)}
-                  className="bg-[#c7d5e0] hover:bg-[#a6bfd1] text-[#2c5a7a] py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-900 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
                 >
                   Hard
                 </button>
                 <button 
                   disabled={isSubmitting}
                   onClick={() => handleRate(4)}
-                  className="bg-[#598096] hover:bg-[#4a6b7d] text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  className="bg-[var(--ct-accent)] hover:bg-[var(--ct-accent-hover)] text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
                 >
                   Good
                 </button>
                 <button 
                   disabled={isSubmitting}
                   onClick={() => handleRate(5)}
-                  className="bg-[#3b759e] hover:bg-[#2c5a7a] text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                  className="bg-[var(--ct-accent)] hover:bg-[var(--ct-accent-hover)] text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
                 >
                   Easy
                 </button>

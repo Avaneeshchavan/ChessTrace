@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Chess, DEFAULT_POSITION } from 'chess.js';
 import { SimilarPositions } from '../components/Board/SimilarPositions';
+import { MoveLedger } from '../components/Board/MoveLedger';
 import { Board } from '../components/Board/Board';
 import { EnginePanel } from '../components/EnginePanel/EnginePanel';
 import { useStockfish } from '../hooks/useStockfish';
@@ -9,6 +10,7 @@ import { API_BASE_URL } from '../config/api';
 
 export default function Sandbox() {
   const [fen, setFen] = useState(DEFAULT_POSITION);
+  const [moves, setMoves] = useState([]);
   const [moveError, setMoveError] = useState('');
   const [result, setResult] = useState(null);
   const [searchError, setSearchError] = useState('');
@@ -19,21 +21,22 @@ export default function Sandbox() {
 
   useEffect(() => () => request.current?.abort(), []);
 
-  function changeFen(value) {
+  function changeFen(value, move) {
     request.current?.abort();
     setResult(null);
     setSearchError('');
     setSearching(false);
     setMoveError('');
     setFen(value);
+    setMoves(previous => move ? [...previous, move] : []);
   }
 
   function movePiece(orig, dest) {
     if (position.error) return false;
     try {
       const chess = new Chess(position.fen);
-      chess.move({ from: orig, to: dest, promotion: 'q' });
-      changeFen(chess.fen());
+      const move = chess.move({ from: orig, to: dest, promotion: 'q' });
+      changeFen(chess.fen(), move);
       return true;
     } catch {
       setMoveError('That move is illegal in this position.');
@@ -76,7 +79,7 @@ export default function Sandbox() {
           </div>
           {moveError && <p role="status" className="text-sm text-red-700">{moveError}</p>}
           <button type="button" onClick={search} disabled={!!position.error || searching}
-            className="rounded bg-[#3b759e] px-4 py-2 font-medium text-white disabled:opacity-50">
+            className="rounded bg-[var(--ct-accent)] px-4 py-2 font-medium text-white disabled:opacity-50">
             {searching ? 'Searching…' : 'Search DB'}
           </button>
           {searchError && <p role="alert" className="text-sm text-red-700">{searchError}</p>}
@@ -84,6 +87,7 @@ export default function Sandbox() {
           {!position.error && <SimilarPositions key={position.fen} fen={position.fen} />}
         </section>
         <section className="space-y-3">
+          <div className="ct-panel"><MoveLedger moves={moves} /></div>
           {position.engineFen ? <EnginePanel {...engine} />
             : <p className="rounded bg-slate-100 p-4 text-sm">Stockfish needs a position it can analyze safely. Check the FEN and try again.</p>}
           {position.error && position.engineFen && <p className="text-sm text-slate-600">Stockfish is analyzing with corrected position metadata.</p>}

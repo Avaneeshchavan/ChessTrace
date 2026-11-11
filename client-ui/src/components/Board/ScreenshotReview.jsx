@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Board } from './Board';
-import { initialSquares, reviewPosition, rotateSquares, SQUARES } from '../../utils/screenshotPosition';
+import { availableCastling, initialSquares, reviewPosition, rotateSquares, SQUARES } from '../../utils/screenshotPosition';
 
 const PIECES = {
   wK: 'White king', wQ: 'White queen', wR: 'White rook', wB: 'White bishop', wN: 'White knight', wP: 'White pawn',
@@ -16,6 +16,7 @@ export function ScreenshotReview({ result, searching, onSearch, onEdit }) {
   const { fen, error } = reviewPosition(squares, turn, rights);
   const display = orientation === 'white' ? SQUARES : [...SQUARES].reverse();
   const flagged = display.filter(key => squares[key]?.flagged);
+  const available = availableCastling(squares);
   const selectedPiece = selected ? squares[selected]?.piece : null;
 
   function setPiece(piece) {
@@ -87,10 +88,27 @@ export function ScreenshotReview({ result, searching, onSearch, onEdit }) {
         </label>
         <button type="button" onClick={flipDetection} className="text-sky-800 underline">Reverse detected orientation</button>
       </div>
+      <details className="text-sm">
+        <summary className="cursor-pointer text-slate-600">Castling rights</summary>
+        <p className="mt-2 text-xs text-slate-500">Set the rights from the original game if you know them.</p>
+        <fieldset className="mt-2 flex flex-wrap gap-x-3 gap-y-1" aria-label="Castling rights">
+          {Object.entries({ K: 'White kingside', Q: 'White queenside', k: 'Black kingside', q: 'Black queenside' }).map(([flag, label]) => (
+            <label key={flag} className="inline-flex items-center gap-1">
+              <input type="checkbox" disabled={!available.includes(flag)}
+                checked={available.includes(flag) && rights.includes(flag)}
+                onChange={event => {
+                  setRights(event.target.checked ? rights.replace('-', '') + flag : rights.replace(flag, ''));
+                  onEdit();
+                }} />
+              {label}
+            </label>
+          ))}
+        </fieldset>
+      </details>
       <p className="break-all font-mono text-xs text-slate-600">{fen}</p>
       {error && <p role="status" className="text-sm text-red-700">{error}</p>}
       <button type="button" disabled={!!error || searching} onClick={() => onSearch(fen)}
-        className="w-full rounded-md bg-[#3b759e] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        className="w-full rounded-md bg-[var(--ct-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
         {searching ? 'Searching…' : 'Search this position'}
       </button>
     </section>

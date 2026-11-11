@@ -23,13 +23,13 @@ export default function ActivityHeatmap({ data = {} }) {
             key={day.date}
             title={`${day.date}: ${day.count} activities`}
             className={`w-3 h-3 rounded-sm ${
-              day.count === 0 
-                ? 'bg-slate-100' 
-                : day.count < 3 
-                  ? 'bg-[#598096]/40' 
-                  : day.count < 6 
-                    ? 'bg-[#598096]/70' 
-                    : 'bg-[#598096]'
+              day.count === 0
+                ? 'bg-slate-100'
+                : day.count < 3
+                  ? 'bg-[var(--ct-accent)]/40'
+                  : day.count < 6
+                    ? 'bg-[var(--ct-accent)]/70'
+                    : 'bg-[var(--ct-accent)]'
             }`}
           />
         ))}

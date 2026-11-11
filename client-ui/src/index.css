@@ -1,19 +1,95 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "./study.css";
 
-/*
- * ChessTrace — Global Design Tokens
- * Light, editorial palette with tournament-green accents.
- */
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("./assets/fonts/instrument-serif.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Sans";
+  src: url("./assets/fonts/dm-sans.woff2") format("woff2");
+  font-weight: 100 1000;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("./assets/fonts/ibm-plex-mono.woff2") format("woff2");
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  --ct-bg: #161411;
+  --ct-sidebar: #1a1713;
+  --ct-panel: #211d18;
+  --ct-field: #1b1814;
+  --ct-raised: #2b251e;
+  --ct-line: #493e31;
+  --ct-ink: #f3e8d6;
+  --ct-muted: #baac98;
+  --ct-dim: #ad9d87;
+  --ct-accent: #e2ad72;
+  --ct-accent-hover: #f0c391;
+  --ct-on-accent: #22180f;
+  --ct-danger: #f5a49a;
+  --ct-success: #b9cb9e;
+  --ct-font-display: "Instrument Serif", Georgia, serif;
+  --ct-font-ui: "DM Sans", system-ui, sans-serif;
+  --ct-font-code: "IBM Plex Mono", monospace;
+  --ct-title: clamp(2.5rem, 5vw, 4.25rem);
+  --ct-radius: .75rem;
+  --ct-shadow: 0 14px 50px #0b08063b;
+  --ct-fast: 160ms;
+  --ct-move: 240ms;
+}
+
+@theme inline {
+  --font-sans: var(--ct-font-ui);
+  --font-mono: var(--ct-font-code);
+  --font-display: var(--ct-font-display);
+  --color-white: var(--ct-panel);
+  --color-slate-50: var(--ct-field);
+  --color-slate-100: var(--ct-raised);
+  --color-slate-200: var(--ct-line);
+  --color-slate-300: #73624e;
+  --color-slate-400: var(--ct-dim);
+  --color-slate-500: var(--ct-muted);
+  --color-slate-600: #c7b9a5;
+  --color-slate-700: #d9cbb7;
+  --color-slate-800: var(--ct-raised);
+  --color-slate-900: var(--ct-ink);
+  --color-red-50: #352320;
+  --color-red-100: #4a2d28;
+  --color-red-200: #70453d;
+  --color-red-500: #ec9b91;
+  --color-red-600: var(--ct-danger);
+  --color-red-700: var(--ct-danger);
+  --color-amber-50: #382a1c;
+  --color-amber-200: #705133;
+  --color-amber-700: #edbd8a;
+  --color-sky-500: var(--ct-accent);
+  --color-sky-800: var(--ct-accent);
+  --color-green-100: #2c3423;
+  --color-green-600: var(--ct-success);
+  --color-accent: var(--ct-accent);
+  --color-accent-hover: var(--ct-accent-hover);
+  --color-on-accent: var(--ct-on-accent);
+}
 
 @layer base {
-  html {
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+  html { font-family: var(--ct-font-ui); -webkit-font-smoothing: antialiased; }
+  body { margin: 0; background: var(--ct-bg); color: var(--ct-ink); }
+  h1, h2, h3 { text-wrap: balance; }
+  :focus-visible { outline: 2px solid var(--ct-accent); outline-offset: 3px; }
+  button:not(:disabled) { cursor: pointer; }
+}
 
-  body {
-    @apply bg-slate-50 text-slate-900;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
   }
 }

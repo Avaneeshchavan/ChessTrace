@@ -147,7 +147,7 @@ export default function TurningPoints() {
             <input type="number" min="4" max="18" value={depth} onChange={e => setDepth(e.target.valueAsNumber || 12)}
               disabled={!!progress} className="w-16 rounded border border-slate-300 p-1" />
           </label>
-          <button disabled={!!progress || saving !== null} className="rounded bg-[#3b759e] px-4 py-2 font-semibold text-white disabled:opacity-50">Analyze</button>
+          <button disabled={!!progress || saving !== null} className="rounded bg-[var(--ct-accent)] px-4 py-2 font-semibold text-white disabled:opacity-50">Analyze</button>
           {progress && <button type="button" onClick={() => active.current?.abort()} className="underline">Cancel analysis</button>}
         </div>
         {progress && <p role="status" className="text-sm">{progress.total ? `Analyzed ${progress.done} of ${progress.total} positions` : 'Importing game…'}</p>}
@@ -166,7 +166,7 @@ export default function TurningPoints() {
               <MotifPicker value={tags[puzzle.index] ?? ['Blunder']} disabled={saving !== null || saved.includes(puzzle.index)}
                 onChange={value => setTags(previous => ({ ...previous, [puzzle.index]: value }))} />
               <button type="button" disabled={saving !== null || saved.includes(puzzle.index)} onClick={() => savePuzzle(puzzle)}
-                className="rounded bg-[#3b759e] px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
+                className="rounded bg-[var(--ct-accent)] px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
                 {saved.includes(puzzle.index) ? 'Saved' : saving === puzzle.index ? 'Saving…' : 'Save to Vault'}
               </button>
             </div>

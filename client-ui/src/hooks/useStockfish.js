@@ -17,6 +17,7 @@ export function useStockfish(fen) {
         if (!active || !info.evaluation) return;
         const { evaluation } = info;
         const whiteScore = evaluation.value * (turn === 'b' ? -1 : 1);
+        setFailure(previous => previous?.key === key ? null : previous);
         setResult({ ...info, key, evaluation: { ...evaluation, value: whiteScore } });
       };
       try {

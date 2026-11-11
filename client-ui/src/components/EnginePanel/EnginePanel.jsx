@@ -47,7 +47,7 @@ export function EnginePanel({
                   max={18}
                   value={depth}
                   onChange={(e) => setDepth(Number(e.target.value))}
-                  className="w-full accent-[#3b759e]"
+                  className="w-full accent-[var(--ct-accent)]"
                 />
               </div>
 
