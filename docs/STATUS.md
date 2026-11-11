@@ -1,6 +1,6 @@
 # ChessTrace status
 
-Updated 2026-11-11 on branch `task/blockers`; B2 (1.1–1.4), B3 (2.1–2.3), B4 (3.1–3.3), and B5 (4.1–4.4) are implemented.
+Updated 2026-11-11 on branch `task/blockers`; B2 (1.1–1.4), B3 (2.1–2.3), B4 (3.1–3.3), B5 (4.1–4.4), and B6 (5.1–5.4) are implemented.
 
 ## Verification
 
@@ -54,3 +54,11 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 - Vault saves and edits multiple motifs. An SM-2 review and its history are recorded atomically. The weekly chart uses ratings from the last 90 days and counts quality 3 or higher as a reported solve.
 - Sandbox validates drops and gates search on FEN validity. Stockfish can still use corrected castling or en passant metadata when the board is safe to analyze.
 - Similar positions returns up to ten HNSW matches. Opening and decade filters apply to the nearest 1,000 candidates. A result opens its stored game at the matching ply. Live PostgreSQL EXPLAIN confirmed the HNSW index scan.
+
+
+## B6 study room
+
+- The dark study-room palette, self-hosted fonts, walnut board, animated evaluation, and move list apply to the client. The public landing page uses Chrome captures of the running application.
+- Origin Lens supports keyboard upload, piece correction, castling edits, distinct game results, and direct replay. The live browser check found the Anand–Bareev position and opened its stored game.
+- The production landing page scored 98 performance and 100 accessibility, best practices, and SEO in mobile Lighthouse. Chrome checked 390px navigation and board resizing with reduced motion enabled.
+- [UI captures and critique](ui/README.md) show the desktop and mobile states and document Astra’s ten ranked findings and the five applied changes.

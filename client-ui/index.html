@@ -11,8 +11,12 @@
         const preview = document.createElement('link');
         preview.rel = 'preload';
         preview.as = 'image';
-        preview.imageSrcset = '/product/origin-lens-720.webp 720w, /product/origin-lens.webp 1100w';
-        preview.imageSizes = '(max-width: 760px) calc(100vw - 32px), (max-width: 1350px) 54vw, 752px';
+        if (matchMedia('(max-width: 760px)').matches) {
+          preview.href = '/product/origin-lens-mobile.webp';
+        } else {
+          preview.imageSrcset = '/product/origin-lens-720.webp 720w, /product/origin-lens.webp 1100w';
+          preview.imageSizes = '(max-width: 1350px) 54vw, 752px';
+        }
         preview.fetchPriority = 'high';
         document.head.append(preview);
       }

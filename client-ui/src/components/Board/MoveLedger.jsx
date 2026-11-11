@@ -30,7 +30,7 @@ export function MoveLedger({ moves, ply = moves.length, onSelect, comments }) {
     <section aria-label="Move list">
       <div className="flex items-center justify-between px-3 py-2">
         <h3 className="text-sm font-semibold">Move list</h3>
-        <span className="font-mono text-xs text-slate-500">{moves.length} half-moves</span>
+        <span className="font-mono text-xs text-slate-500">{moves.length} {moves.length === 1 ? 'half-move' : 'half-moves'}</span>
       </div>
       <div className="move-ledger font-mono text-xs">
         {rows.size ? [...rows.values()].map(row => (

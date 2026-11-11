@@ -1,7 +1,4 @@
-/* ChessTrace board — light theme for chessground.
-   Chessground renders the board grid as a background on <cg-board>,
-   not as individual <square> elements. We paint a CSS checkerboard
-   gradient instead via the 64-div React grid in Board.jsx. */
+/* Keep the texture, piece grid and review targets on the same square. */
 
 .ct-board-host.cg-wrap {
   position: absolute;
@@ -17,6 +14,11 @@
 
 .ct-board-surface {
   background: #9b714b url('../../assets/boards/walnut.webp') center / 100% 100% no-repeat;
+}
+
+.ct-board-surface cg-container {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .ct-board-surface cg-board {

@@ -6,6 +6,10 @@ Chrome captures of the local client, using the local vision service and public g
 - [Landing mobile](landing-mobile.png)
 - [Origin Lens desktop](lens-desktop.png)
 - [Origin Lens mobile](lens-mobile.png)
+- [Origin Lens mobile board review](lens-review-mobile.png)
 - [Sandbox desktop](sandbox-desktop.png)
+- [Sandbox mobile](sandbox-mobile.png)
 
-Mobile Lighthouse on the production preview landing page scored 99 for performance and 100 for accessibility, best practices, and SEO. Chrome checks covered desktop and 390px mobile navigation, the registration CTA, keyboard upload, corrected castling rights, a live exact match, and replay.
+Mobile Lighthouse on the production preview landing page scored 98 for performance and 100 for accessibility, best practices, and SEO. Chrome checks covered desktop and 390px mobile navigation, the registration CTA, keyboard upload, corrected castling rights, a live exact match, replay, and board alignment while resizing with reduced motion enabled.
+
+See the ten ranked findings and the five implemented changes in [CRITIQUE.md](CRITIQUE.md).

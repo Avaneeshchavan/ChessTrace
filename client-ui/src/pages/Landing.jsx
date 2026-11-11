@@ -4,7 +4,7 @@ import ChessTraceLogo from '../components/ChessTraceLogo';
 import { useAuth } from '../context/AuthContext';
 import '../landing.css';
 
-const imageSizes = '(max-width: 760px) calc(100vw - 32px), (max-width: 1350px) 54vw, 752px';
+const imageSizes = '(max-width: 1350px) 54vw, 752px';
 
 const steps = [
   ['Upload', 'Start with a screenshot of a digital chessboard.'],
@@ -38,8 +38,12 @@ export default function Landing() {
             </div>
           </div>
           <figure className="landing-figure">
-            <img src="/product/origin-lens.webp" srcSet="/product/origin-lens-720.webp 720w, /product/origin-lens.webp 1100w" sizes={imageSizes} alt="Origin Lens showing a reconstructed board and exact historical matches"
-              width="1100" height="715" fetchPriority="high" />
+            <picture>
+              <source media="(max-width: 760px)" srcSet="/product/origin-lens-mobile.webp" width="480" height="933" />
+              <img src="/product/origin-lens.webp" srcSet="/product/origin-lens-720.webp 720w, /product/origin-lens.webp 1100w" sizes={imageSizes}
+                alt="Origin Lens showing a reconstructed board and exact historical matches"
+                width="1100" height="926" fetchPriority="high" />
+            </picture>
             <figcaption>Origin Lens · Historical match results</figcaption>
           </figure>
         </section>
@@ -64,8 +68,12 @@ export default function Landing() {
             <Link to={token ? '/sandbox' : '/auth'} className="ct-quiet">Open Sandbox <ArrowRight size={16} aria-hidden="true" /></Link>
           </div>
           <figure className="landing-figure">
-            <img src="/product/sandbox.webp" srcSet="/product/sandbox-720.webp 720w, /product/sandbox.webp 1100w" sizes={imageSizes} alt="Sandbox showing the board, a move list, and Stockfish evaluation"
-              width="1100" height="656" loading="lazy" />
+            <picture>
+              <source media="(max-width: 760px)" srcSet="/product/sandbox-mobile.webp" width="480" height="1055" />
+              <img src="/product/sandbox.webp" srcSet="/product/sandbox-720.webp 720w, /product/sandbox.webp 1100w" sizes={imageSizes}
+                alt="Sandbox showing the board, a move list, and Stockfish evaluation"
+                width="1100" height="807" loading="lazy" />
+            </picture>
             <figcaption>Sandbox · Board, move list, and evaluation</figcaption>
           </figure>
         </section>

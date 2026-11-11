@@ -128,11 +128,16 @@ export default function OriginLens() {
   const uploading = phase === 'uploading';
   const uploadDisabled = visionHealthStatus === 'waking' || visionHealthStatus === 'error';
   const confidence = Math.round((visionResult?.theme_match_confidence ?? 0) * 100);
-  const matches = searchResult?.matches ?? [];
+  const games = new Map();
+  for (const match of searchResult?.matches ?? []) {
+    const key = match.gameId ?? match.game?.id ?? match.id;
+    if (!games.has(key)) games.set(key, match);
+  }
+  const matches = [...games.values()];
 
   return (
-    <main className="lens-workspace">
-      <header className="lens-header">
+    <main className="ct-workspace">
+      <header className="ct-workspace-header">
         <h1>Origin Lens</h1>
         <p>Find where a position appeared and replay the games that led to it.</p>
       </header>
@@ -144,7 +149,7 @@ export default function OriginLens() {
           {visionHealthStatus === 'error' && (
             <p role="alert" className="ct-panel p-3 text-sm text-red-700">The vision service is unavailable. <button type="button" className="underline" onClick={() => window.location.reload()}>Retry connection</button></p>
           )}
-          <div className="ct-panel lens-upload"
+          <div className="ct-panel lens-upload" data-has-result={!!visionResult}
             onDrop={event => { if (uploadDisabled) event.preventDefault(); else handleDrop(event); }}
             onDragOver={event => { event.preventDefault(); if (!uploadDisabled) setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}>
@@ -152,7 +157,7 @@ export default function OriginLens() {
               disabled={uploadDisabled} onClick={() => fileRef.current?.click()}>
               {uploading ? <Loader2 size={22} className="text-accent animate-spin" aria-hidden="true" /> : <Upload size={22} className="text-accent" aria-hidden="true" />}
               <span className="font-semibold">{uploading ? 'Reading the board…' : previewUrl ? 'Replace screenshot' : 'Upload a board screenshot'}</span>
-              <span className="text-xs text-slate-500">Drop or choose a PNG, JPEG, or WebP · up to 8 MiB</span>
+              {!visionResult && <span className="text-xs text-slate-500">Drop or choose a PNG, JPEG, or WebP · up to 8 MiB</span>}
             </button>
             <input ref={fileRef} type="file" aria-label="Board screenshot" accept="image/png,image/jpeg,image/webp"
               className="hidden" onChange={handleFileSelect} />
@@ -180,8 +185,8 @@ export default function OriginLens() {
           )}
         </section>
 
-        <aside className="ct-panel lens-lineage" aria-label="Match lineage">
-          <h2>Match lineage</h2>
+        <aside className="ct-panel lens-lineage" aria-label="Matching games">
+          <h2>Matching games</h2>
           {phase === 'searching' ? (
             <div role="status" className="space-y-3 pt-4">
               <span className="sr-only">Searching the game database.</span>
@@ -189,7 +194,7 @@ export default function OriginLens() {
             </div>
           ) : searchResult ? (
             <>
-              <p className="mt-2 font-mono text-xs text-accent">{matches.length} {searchResult.matchType === 'exact' ? 'exact' : 'similar'} {matches.length === 1 ? 'position' : 'positions'}</p>
+              <p className="mt-2 font-mono text-xs text-accent">{matches.length} {matches.length === 1 ? 'game' : 'games'} with {searchResult.matchType === 'exact' ? 'this position' : 'similar positions'}</p>
               {!matches.length && <p className="py-6 text-sm text-slate-500">No matching games found. Check the position and side to move.</p>}
               {replay && <div className="my-4"><GameReplay key={replay.id} match={replay} /></div>}
               <ol>
@@ -200,12 +205,12 @@ export default function OriginLens() {
                     whiteName: game.whiteName, blackName: game.blackName };
                   return (
                     <li key={match.id} className="lens-match">
-                      <p className="font-mono text-xs text-slate-500">{[game.event, year, game.result].filter(Boolean).join(' · ') || 'Tournament details unavailable'}</p>
-                      <h3 className="text-base font-semibold">{game.whiteName} <span className="text-slate-500">vs.</span> {game.blackName}</h3>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-xs text-slate-500">Move {Math.ceil(match.halfMove / 2)}{match.halfMove % 2 ? '.' : '…'}</span>
+                      <p className="font-mono text-xs text-slate-500">{[game.event, year, game.result,
+                        `Move ${Math.ceil(match.halfMove / 2)}${match.halfMove % 2 ? '.' : '…'}`].filter(Boolean).join(' · ')}</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-base font-semibold">{game.whiteName} <span className="text-slate-500">vs.</span> {game.blackName}</h3>
                         {record.gameId && <button type="button" onClick={() => setReplay(record)}
-                          className="inline-flex min-h-11 items-center gap-1 text-sm text-accent" aria-pressed={replay?.id === match.id}>
+                          className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm text-accent" aria-pressed={replay?.id === match.id}>
                           Replay <ArrowUpRight size={15} aria-hidden="true" />
                         </button>}
                       </div>
