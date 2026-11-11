@@ -1,64 +1,38 @@
-# ChessTrace Phase 2 — Screenshot to FEN
+# ChessTrace vision engine
 
-FastAPI microservice: digital-chessboard screenshot in, standard FEN out.
-Feeds directly into Phase 1's Postgres search layer (fenCore hash +
-HNSW). See **EXPLANATION.md** for the confidence threshold, theme-support
-scoping, FEN-compliance guarantee, and a full worked example — read that
-first if you're evaluating this deliverable.
+The vision service detects pieces in a digital board screenshot and returns an editable position. The Origin Lens client shows the detected pieces and dashed review flags, then waits for the user to search.
 
-## Layout
+Run from this directory in the Python environment where the dependencies are installed:
 
-```
-app/
-  main.py                    FastAPI app — POST /parse-screenshot
-  schemas.py                 Pydantic response models
-  pipeline/
-    board_detection.py       Locate the board in an arbitrary screenshot
-    grid_slicing.py           8x8 slicing, per-theme label-margin handling
-    template_library.py      Silhouette extraction + side classification (shared)
-    template_matching.py     Live per-square classification + confidence
-    orientation.py           White/Black-at-bottom via coordinate-label OCR
-    fen_assembly.py          8x8 grid + orientation -> standard FEN
-    fen_validate.py          Strict FEN validation (python-chess, or fallback)
-templates/
-  chesscom_neo/, lichess_cburnett/   Generated template libraries (6 shapes + side_reference.json each)
-scripts/
-  generate_templates.py       Builds the template library (READ THE DOCSTRING — synthetic stand-ins, see EXPLANATION.md §0)
-  make_synthetic_test_board.py  Builds the worked-example test screenshots
-tests/
-  test_pipeline.py            End-to-end pipeline test against the worked example
-examples/
-  synthetic_chesscom_neo.png, synthetic_lichess_cburnett.png
-EXPLANATION.md
-requirements.txt
+```sh
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload
 ```
 
-## Running it
+Use `python -m uvicorn` locally so Uvicorn runs in the same environment as OpenCV. Render installs the requirements in its vision service and runs `uvicorn app.main:app` there.
 
-```bash
-pip install -r requirements.txt --break-system-packages   # or use a venv
-python -m scripts.generate_templates                      # build template library (once)
-uvicorn app.main:app --reload
+```sh
+curl --fail-with-body 'http://localhost:8000/detect?theme=auto' -F 'file=@your_screenshot.png'
 ```
 
-```bash
-curl -X POST http://localhost:8000/parse-screenshot \
-  -F "file=@your_screenshot.png" \
-  -F "theme=auto"
+`POST /parse-screenshot` remains available as an alias. The multipart upload is limited to 8 MiB including form overhead and is processed in memory. The response includes `fen`, `fen_valid`, and 64 `squares` with algebraic keys, piece codes, match scores, and `needs_review` flags. Scores describe template fit and are not probabilities. Use the optional query parameter `manual_orientation=black_bottom` when OCR cannot infer orientation. Turn, castling, clocks and en passant are best-effort or placeholders.
+
+Auto mode scores the classic, neo_wood, neon and wood sprite sets against the squares' local background colors. The generated templates are checked in under `templates/` so the Render service can load them without reading sibling directories. To regenerate from the bundled assets:
+
+```sh
+python -m scripts.generate_templates
 ```
 
-## Verifying the pipeline without a live server
+The original glyph fixture themes remain available for compatibility. See [the classifier notes](EXPLANATION.md) and [measured results](../docs/VISION_EVAL.md).
 
-```bash
-python -m scripts.make_synthetic_test_board   # (re)builds examples/*.png
-python -m tests.test_pipeline                 # runs board detection -> ... -> FEN validation end to end
+```sh
+python tests/test_pipeline.py
+python tests/test_detect.py
+python tests/eval/evaluate.py --output ../docs/VISION_EVAL.md
 ```
 
-This environment had no network access, so `requirements.txt` packages
-(fastapi, python-chess, pytesseract, etc.) could not be installed or
-run here — the OpenCV/NumPy/Pillow-only pipeline stages (board
-detection, grid slicing, template matching, FEN assembly) ARE tested and
-verified in this sandbox; `app/main.py`'s FastAPI wiring is syntax-
-checked (`python -m py_compile`) but not live-request-tested. Standard,
-well-trodden FastAPI usage, but worth a smoke test in an environment
-with pip access before treating it as production-verified.
+Synthetic cases render legal positions in memory and add slight resize and JPEG noise. To evaluate your own images locally, copy `tests/eval/manifest.example.csv` to `tests/eval/manifest.csv`, put the images in `tests/eval/images/`, and fill in each filename and its expected FEN. The optional orientation column accepts `white_bottom` or `black_bottom`; leave it blank to test OCR. Both local inputs are ignored by Git.
+
+```sh
+python tests/eval/evaluate.py --manifest tests/eval/manifest.csv
+```

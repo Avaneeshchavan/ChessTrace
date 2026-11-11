@@ -1,71 +1,52 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import { Home, Eye, Zap, TrendingUp, Grid3x3, Settings, ChevronUp, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Eye, Grid3x3, Home, LogOut, Menu, Settings, TrendingUp, X, Zap } from 'lucide-react';
 import ChessTraceLogo from './ChessTraceLogo';
 import { useAuth } from '../context/AuthContext';
+import { useServiceHealth } from '../hooks/useServiceHealth';
+import { API_BASE_URL } from '../config/api';
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: Home },
-  { to: '/lens',      label: 'Origin Lens', icon: Eye },
-  { to: '/sandbox',   label: 'Blueprint Sandbox', icon: Zap },
-  { to: '/turning-points', label: 'Turning Points', icon: TrendingUp },
-  { to: '/vault',     label: 'Pattern Vault', icon: Grid3x3 },
-  { to: '/settings',  label: 'Settings', icon: Settings },
+  ['/dashboard', 'Dashboard', Home],
+  ['/lens', 'Origin Lens', Eye],
+  ['/sandbox', 'Sandbox', Zap],
+  ['/turning-points', 'Turning Points', TrendingUp],
+  ['/vault', 'Pattern Vault', Grid3x3],
+  ['/settings', 'Settings', Settings],
 ];
 
 export function Shell() {
   const { logout } = useAuth();
+  const { status } = useServiceHealth(API_BASE_URL);
+  const { pathname } = useLocation();
+  const [menuPath, setMenuPath] = useState(null);
+  const menuOpen = menuPath === pathname;
+
   return (
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-900 antialiased">
-      {/* Sidebar */}
-      <aside className="w-60 shrink-0 flex flex-col bg-white ring-1 ring-slate-900/5">
-        {/* Logo */}
-        <div className="px-6 py-5 border-b border-slate-100">
-          <ChessTraceLogo />
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2.5 rounded-md text-sm transition-colors border-l-2 ${
-                  isActive
-                    ? 'border-l-[#3b759e] text-[#3b759e] bg-[#3b759e]/5 font-medium'
-                    : 'border-l-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
-                }`
-              }
-            >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* Engine Room Footer */}
-        <div className="border-t border-slate-100 px-3 py-4">
-          <div className="px-4 py-3 rounded-lg bg-slate-50 ring-1 ring-slate-900/5">
-            <div className="flex items-center gap-2 mb-2">
-              <ChevronUp size={16} className="text-slate-400" />
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Engine Room</span>
-            </div>
-            <p className="text-xs text-slate-500">Depth: 20 · Eval: +0.45</p>
-          </div>
-          <button
-            onClick={logout}
-            className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <LogOut size={16} />
-            Log Out
-          </button>
+    <div className="study-shell">
+      <a href="#study-main" className="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:bg-white focus:p-3">Skip to content</a>
+      <aside className="study-sidebar" data-menu-open={menuOpen}
+        onKeyDown={event => { if (event.key === 'Escape') setMenuPath(null); }}>
+        <Link to="/dashboard" className="study-brand" onClick={() => setMenuPath(null)}><ChessTraceLogo /></Link>
+        <button type="button" className="study-menu" aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+          aria-expanded={menuOpen} aria-controls="study-navigation" onClick={() => setMenuPath(menuOpen ? null : pathname)}>
+          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+        <div className="study-navigation flex min-h-0 flex-1 flex-col" id="study-navigation">
+          <nav className="study-nav" aria-label="Study navigation">
+            {navItems.map(([to, label, Icon]) => (
+              <NavLink key={to} to={to} onClick={() => setMenuPath(null)}>
+                <Icon size={17} aria-hidden="true" />{label}
+              </NavLink>
+            ))}
+          </nav>
+          <button type="button" onClick={logout} className="study-logout"><LogOut size={17} aria-hidden="true" /> Sign out</button>
         </div>
       </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-slate-50">
+      <div className="study-content" id="study-main" tabIndex={-1}>
+        {status === 'waking' && <p role="status" className="study-health">Reconnecting to the game database…</p>}
         <Outlet />
-      </main>
+      </div>
     </div>
   );
 }

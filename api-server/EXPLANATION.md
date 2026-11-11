@@ -169,42 +169,23 @@ which are reasonable starting points rather than tuned values — tune them
 only after measuring real recall/latency on your actual dataset, not
 speculatively.
 
-## 4. Why the ingestion script uses raw multi-row INSERT instead of createMany or COPY
+## 4. Bulk ingestion and deduplication
 
-The original brief mentions `createMany` (or raw `COPY` if `createMany` is
-too slow) as the bulk-insert mechanism. In practice, once a `vector` column
-is involved, this isn't really a performance choice — it's forced: Prisma
-won't let `createMany` write to an `Unsupported("vector(32)")` column at
-all (see section 2). So `scripts/ingest.js` builds parameterized multi-row
-`INSERT ... VALUES (...), (...), ...` statements via
-`prisma.$executeRawUnsafe`, batching ~8,000 position rows per statement.
-This keeps values fully parameterized (no string-interpolated data, so no
-SQL-injection risk) while still getting the same "one round trip per
-several thousand rows" benefit `createMany` would have given, which is
-what actually matters for staying within Neon's free-tier connection and
-statement-timeout limits.
+Prisma cannot write the unsupported pgvector field through its normal model API.
+The ingester passes parameterized JSON batches to Postgres and casts vector
+values on insert. A transaction commits the games and their positions together.
+An advisory lock serializes cooperating ingesters targeting the same schema.
+Matching PGN records reuse the existing game ID; existing half-moves are skipped
+and missing ones are filled. The ingester does not rewrite historical rows.
 
-Games are batched the same way (300 per round trip) using
-`INSERT ... RETURNING id`, because we need each game's generated ID before
-we can attach position rows to it as foreign keys, and a single round trip
-per game would be far too slow at 50,000-100,000 games given typical
-network latency to a hosted database.
+## 5. Bounded streaming and resume
 
-## 5. Memory safety in the ingestion script
-
-The script never holds the whole PGN file in memory: it streams the file
-line-by-line with Node's `readline` (via `for await...of`, which naturally
-backpressures — the file isn't read faster than the loop consumes it), and
-only ever buffers (a) the current game being parsed, (b) up to 300 games
-awaiting a batch insert, and (c) up to ~8,000 position rows awaiting a
-flush. Each of those buffers is bounded and gets cleared immediately after
-its round trip, so resident memory stays roughly flat regardless of
-whether the input file has 1,000 games or 500,000. `process.memoryUsage()`
-is logged periodically so you can watch this hold true on your own
-machine; running with `node --expose-gc scripts/ingest.js ...` (via the
-`npm run ingest:gc` script) additionally forces a garbage-collection pass
-after each position-chunk flush, for extra headroom on constrained
-laptops.
+The ingester streams an uncompressed PGN by game, with a 2 MiB game-size guard.
+Defaults are 25 games per transaction and 4,000 positions per insert. The atomic
+checkpoint advances after each successful batch, recording a game ordinal. A
+resume reads and skips the committed prefix without replaying its moves. If the
+database commits before the checkpoint is saved, replaying that batch is safe.
+See [DATA.md](../docs/DATA.md) for commands and filtering.
 
 ## 6. Why the legality checker doesn't attempt full reachability
 

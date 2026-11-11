@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /lens
+Disallow: /sandbox
+Disallow: /turning-points
+Disallow: /vault
+Disallow: /settings

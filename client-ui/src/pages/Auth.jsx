@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import ChessTraceLogo from '../components/ChessTraceLogo';
 import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -8,8 +8,9 @@ import { validatePassword } from '../utils/validation';
 export default function Auth() {
   const navigate = useNavigate();
   const { login, register } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   
-  const [isLogin, setIsLogin] = useState(true);
+  const isLogin = searchParams.get('mode') !== 'register';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -42,10 +43,10 @@ export default function Auth() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f4f4ef] bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] px-4 py-10 sm:px-6">
+    <main className="flex min-h-screen items-center justify-center px-4 py-10 sm:px-6">
       <section className="w-full max-w-md rounded-2xl bg-white p-7 shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 sm:p-10">
         <div className="flex flex-col items-center text-center">
-          <ChessTraceLogo />
+          <Link to="/" aria-label="ChessTrace home"><ChessTraceLogo /></Link>
           <p className="mt-5 text-sm text-slate-500">
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
           </p>
@@ -69,7 +70,7 @@ export default function Auth() {
                 placeholder="Grandmaster"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#3b759e] focus:ring-2 focus:ring-[#3b759e]"
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--ct-accent)] focus:ring-2 focus:ring-[var(--ct-accent)]"
                 required
               />
             </div>
@@ -86,7 +87,7 @@ export default function Auth() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#3b759e] focus:ring-2 focus:ring-[#3b759e]"
+              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--ct-accent)] focus:ring-2 focus:ring-[var(--ct-accent)]"
               required
             />
           </div>
@@ -96,11 +97,6 @@ export default function Auth() {
               <label htmlFor="password" className="text-sm font-medium text-slate-700">
                 Password
               </label>
-              {isLogin && (
-                <a href="#" className="text-xs font-medium text-slate-500 transition hover:text-[#3b759e]">
-                  Forgot password?
-                </a>
-              )}
             </div>
             <input
               id="password"
@@ -109,7 +105,7 @@ export default function Auth() {
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#3b759e] focus:ring-2 focus:ring-[#3b759e]"
+              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--ct-accent)] focus:ring-2 focus:ring-[var(--ct-accent)]"
               required
             />
           </div>
@@ -117,7 +113,7 @@ export default function Auth() {
           <button
             type="submit"
             disabled={loading}
-            className="h-11 w-full flex items-center justify-center gap-2 rounded-lg bg-[#3b759e] text-sm font-semibold text-white shadow-sm transition hover:bg-[#2c5a7a] focus:outline-none focus:ring-2 focus:ring-[#3b759e] focus:ring-offset-2 disabled:opacity-70"
+            className="ct-button w-full"
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
             {isLogin ? 'Sign In' : 'Sign Up'}
@@ -128,8 +124,8 @@ export default function Auth() {
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <button 
             type="button"
-            onClick={() => { setIsLogin(!isLogin); setError(''); }}
-            className="font-medium text-slate-600 transition hover:text-[#3b759e]"
+            onClick={() => { setSearchParams(isLogin ? { mode: 'register' } : {}); setError(''); }}
+            className="font-medium text-slate-600 transition hover:text-[var(--ct-accent)]"
           >
             {isLogin ? 'Create an account' : 'Sign in instead'}
           </button>

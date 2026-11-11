@@ -20,9 +20,20 @@ path ever exists for the upload.
 
 from typing import Optional
 
+import os
+
+# Bound decoded image allocation before OpenCV is imported.
+os.environ.setdefault("OPENCV_IO_MAX_IMAGE_PIXELS", str(16_000_000))
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import UploadFile
+from starlette.formparsers import MultiPartException, MultiPartParser
+try:
+    from python_multipart.exceptions import MultipartParseError
+except ImportError:  # older python-multipart releases
+    from multipart.exceptions import MultipartParseError
 from fastapi.responses import JSONResponse
 
 from app.pipeline.board_detection import detect_board
@@ -31,9 +42,9 @@ from app.pipeline.fen_validate import validate_fen
 from app.pipeline.grid_slicing import THEME_GRID_CONFIGS, slice_board
 from app.pipeline.orientation import detect_orientation
 from app.pipeline.template_matching import get_matcher, needs_manual_review
+from app.pipeline.sprite_matching import SPRITE_THEMES, classify_board
 from app.schemas import BestEffortFields, ParseScreenshotResponse, SquareResult
 
-import os
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
@@ -57,68 +68,106 @@ from datetime import datetime
 def health_check():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat() + "Z"}
 
-SUPPORTED_THEMES = list(THEME_GRID_CONFIGS.keys())
+LEGACY_THEMES = list(THEME_GRID_CONFIGS)
+SUPPORTED_THEMES = [*SPRITE_THEMES, *LEGACY_THEMES]
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
 
-def _run_theme(board_crop: np.ndarray, theme: str):
-    """Slices + classifies board_crop under one theme's config. Returns
-    (classifications 8x8, mean_confidence_over_nonempty)."""
-    squares_px = slice_board(board_crop, theme=theme)
+def _run_theme(board_crop, theme):
+    if theme in SPRITE_THEMES:
+        return classify_board(slice_board(board_crop, theme="chesscom_neo"), theme)
+    squares = slice_board(board_crop, theme=theme)
     matcher = get_matcher(theme)
-    classifications = [[matcher.classify_square(squares_px[r][c]) for c in range(8)] for r in range(8)]
-    flat = [c for row in classifications for c in row]
-    score = matcher.theme_match_score(flat)
-    return classifications, score
+    classified = [[matcher.classify_square(square) for square in row] for row in squares]
+    return classified, matcher.theme_match_score([c for row in classified for c in row])
 
 
-def _pick_theme(board_crop: np.ndarray, requested_theme: str):
-    """
-    Returns (theme_name, classifications, score, auto_detected).
-
-    If the caller named a specific supported theme, we use exactly that —
-    per the spec, we do not silently guess on/override an explicit
-    choice. Only "auto" triggers the try-both-and-compare behavior, and
-    even then, if BOTH themes score poorly, we still return the better of
-    the two rather than fabricating a third option — the low aggregate
-    score itself, surfaced in `theme_match_confidence`, is the caller's
-    signal that this screenshot's theme isn't confidently recognized.
-    """
+def _pick_theme(board_crop, requested_theme):
     if requested_theme != "auto":
         if requested_theme not in SUPPORTED_THEMES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported theme '{requested_theme}'. Supported: {SUPPORTED_THEMES + ['auto']}",
-            )
+            raise HTTPException(400, f"Unsupported theme. Choose from: {SUPPORTED_THEMES + ['auto']}")
         classifications, score = _run_theme(board_crop, requested_theme)
         return requested_theme, classifications, score, False
 
-    best_theme, best_classifications, best_score = None, None, -1.0
-    for theme in SUPPORTED_THEMES:
-        classifications, score = _run_theme(board_crop, theme)
-        if score > best_score:
-            best_theme, best_classifications, best_score = theme, classifications, score
-    return best_theme, best_classifications, best_score, True
+    tiles = slice_board(board_crop, theme="chesscom_neo")
+    candidates = [(theme, *classify_board(tiles, theme)) for theme in SPRITE_THEMES]
+    theme, classified, score = max(candidates, key=lambda candidate: candidate[2])
+    if score < .38:
+        # The two original glyph fixtures remain supported as a fallback.
+        legacy = [(name, *_run_theme(board_crop, name)) for name in LEGACY_THEMES]
+        name, result, legacy_score = max(legacy, key=lambda candidate: candidate[2])
+        # The legacy correlation and sprite reconstruction scores are different
+        # scales. Only prefer a clear legacy match over weak sprite evidence.
+        if legacy_score >= .72:
+            return name, result, legacy_score, True
+    return theme, classified, score, True
 
 
-@app.post("/parse-screenshot", response_model=ParseScreenshotResponse)
-async def parse_screenshot(
-    file: UploadFile = File(...),
-    theme: str = "auto",
-    manual_orientation: Optional[str] = None,
-):
-    raw_bytes = await file.read()  # in-memory only — never written to disk
-    arr = np.frombuffer(raw_bytes, dtype=np.uint8)
-    image = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-    if image is None:
-        raise HTTPException(status_code=400, detail="Could not decode image. Supported: PNG, JPEG.")
+class MemoryMultipartParser(MultiPartParser):
+    # Starlette used max_file_size for the spool threshold in older versions.
+    spool_max_size = MAX_UPLOAD_BYTES + 1
+    max_file_size = MAX_UPLOAD_BYTES + 1
 
+
+UPLOAD_DOCS = {"requestBody": {"required": True, "content": {"multipart/form-data": {
+    "schema": {"type": "object", "required": ["file"], "properties": {
+        "file": {"type": "string", "format": "binary"},
+    }},
+}}}}
+
+
+@app.post("/detect", response_model=ParseScreenshotResponse, openapi_extra=UPLOAD_DOCS)
+@app.post("/parse-screenshot", response_model=ParseScreenshotResponse, openapi_extra=UPLOAD_DOCS)
+async def parse_screenshot(request: Request, theme: str = "auto", manual_orientation: Optional[str] = None):
+    if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "multipart/form-data":
+        raise HTTPException(415, "Upload a multipart form with one image in the file field.")
+    total = 0
+
+    async def bounded_stream():
+        nonlocal total
+        async for chunk in request.stream():
+            total += len(chunk)
+            if total > MAX_UPLOAD_BYTES:
+                raise MultiPartException("Image upload exceeds 8 MiB.")
+            yield chunk
+
+    try:
+        form = await MemoryMultipartParser(request.headers, bounded_stream(), max_files=1, max_fields=0).parse()
+    except MultiPartException as error:
+        raise HTTPException(413 if total > MAX_UPLOAD_BYTES else 400, str(error)) from error
+    except MultipartParseError as error:
+        raise HTTPException(400, "Could not parse the multipart image upload.") from error
+    try:
+        file = form.get("file")
+        if not isinstance(file, UploadFile):
+            raise HTTPException(400, "An image in the file field is required.")
+        raw_bytes = await file.read()
+    finally:
+        await form.close()
+
+    return await run_in_threadpool(detect_bytes, raw_bytes, theme, manual_orientation)
+
+
+def detect_bytes(raw_bytes: bytes, theme="auto", manual_orientation=None):
+    try:
+        image = cv2.imdecode(np.frombuffer(raw_bytes, dtype=np.uint8), cv2.IMREAD_COLOR) if raw_bytes else None
+    except cv2.error as error:
+        raise HTTPException(400, "Could not decode image within the supported size limit.") from error
+    if image is None or min(image.shape[:2]) < 64:
+        raise HTTPException(400, "Upload a decodable board image at least 64 pixels wide and tall.")
+    return analyze_image(image, theme, manual_orientation)
+
+
+def analyze_image(image: np.ndarray, theme="auto", manual_orientation=None):
     warnings = []
 
     board_box = detect_board(image)
+    if min(board_box.w, board_box.h) < 64:
+        raise HTTPException(400, "The detected board is too small. Upload a closer crop.")
     if board_box.method == "fallback_whole_image":
         warnings.append(
             "Could not confidently locate the board via contour detection; "
-            "treating the entire image as the board. Results may be unreliable "
+            "using a centered square crop. Results may be unreliable "
             "if the screenshot includes significant UI outside the board."
         )
     board_crop = image[board_box.y : board_box.y + board_box.h, board_box.x : board_box.x + board_box.w]
@@ -163,6 +212,7 @@ async def parse_screenshot(
                     piece=cl.piece,
                     confidence=round(cl.confidence, 4),
                     ambiguous_margin=cl.ambiguous_margin,
+                    needs_review=flagged,
                 )
             )
             if flagged:
@@ -185,7 +235,7 @@ async def parse_screenshot(
         theme_auto_detected=theme_auto_detected,
         orientation=orientation,
         orientation_method=orientation_method,
-        squares=square_results,
+        squares=sorted(square_results, key=lambda sq: (-int(sq.square[1]), sq.square[0])),
         low_confidence_squares=low_confidence_squares,
         warnings=warnings,
     )

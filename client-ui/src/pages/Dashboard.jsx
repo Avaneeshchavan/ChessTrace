@@ -5,9 +5,9 @@ import ActivityHeatmap from '../components/ActivityHeatmap';
 
 function ActivityIcon({ type }) {
   switch (type) {
-    case 'LENS_SEARCH': return <Search size={16} className="text-[#3b759e]" />;
-    case 'TURNING_POINTS_RUN': return <Brain size={16} className="text-[#3b759e]" />;
-    case 'PUZZLE_SAVED': return <Target size={16} className="text-[#3b759e]" />;
+    case 'LENS_SEARCH': return <Search size={16} className="text-[var(--ct-accent)]" />;
+    case 'TURNING_POINTS_RUN': return <Brain size={16} className="text-[var(--ct-accent)]" />;
+    case 'PUZZLE_SAVED': return <Target size={16} className="text-[var(--ct-accent)]" />;
     default: return <div className="w-4 h-4 rounded-full bg-slate-300" />;
   }
 }
@@ -29,16 +29,20 @@ export default function Dashboard() {
 
   if (status === 'waking' || status === 'checking') {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-[#3b759e]">
+      <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
         <div className="animate-pulse font-medium">Waiting for servers to wake up...</div>
       </div>
     );
   }
 
+  if (status === 'error') {
+    return <p className="p-6 text-red-700" role="alert">The study room could not reach the game database. Reload to retry.</p>;
+  }
+
   if (isLoading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4">
-        <Loader2 size={48} className="text-[#3b759e] animate-spin" />
+        <Loader2 size={48} className="text-[var(--ct-accent)] animate-spin" />
       </div>
     );
   }
@@ -54,15 +58,15 @@ export default function Dashboard() {
   const { stats, streak, heatmap, recentActivity } = data || {};
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-10">
+      <div className="flex flex-wrap gap-3 items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mb-2">Dashboard</h1>
           <p className="text-slate-500 text-sm">Your chess analysis at a glance.</p>
         </div>
-        <div className="flex items-center gap-2 bg-[#3b759e]/10 text-[#3b759e] px-4 py-2 rounded-full font-bold">
-          <Flame size={20} className={streak > 0 ? 'text-orange-500' : 'text-[#3b759e]/50'} />
+        <div className="flex items-center gap-2 bg-[var(--ct-accent)]/10 text-[var(--ct-accent)] px-4 py-2 rounded-full font-bold">
+          <Flame size={20} className={streak > 0 ? 'text-orange-500' : 'text-[var(--ct-accent)]/50'} />
           <span>{streak} Day Streak</span>
         </div>
       </div>
@@ -95,26 +99,26 @@ export default function Dashboard() {
 
           {/* Quick Launch Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link to="/lens" className="group bg-[#3b759e] rounded-xl p-6 text-white hover:bg-[#2c5a7a] transition-colors relative overflow-hidden">
+            <Link to="/lens" className="group bg-[var(--ct-accent)] rounded-xl p-6 text-white hover:bg-[var(--ct-accent-hover)] transition-colors relative overflow-hidden">
               <div className="relative z-10">
                 <h3 className="text-xl font-semibold tracking-tight mb-2">Origin Lens</h3>
-                <p className="text-white/80 text-sm mb-4">Analyze a position screenshot</p>
+                <p className="text-on-accent/90 text-sm mb-4">Analyze a position screenshot</p>
                 <div className="flex items-center gap-1 font-semibold text-sm">
                   Launch <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
-              <Search size={100} className="absolute -right-6 -bottom-6 text-white/10 group-hover:scale-110 transition-transform duration-300" />
+              <Search size={100} className="absolute -right-6 -bottom-6 text-on-accent/10 group-hover:scale-110 transition-transform duration-300" />
             </Link>
 
-            <Link to="/turning-points" className="group bg-slate-800 rounded-xl p-6 text-white hover:bg-slate-900 transition-colors relative overflow-hidden">
+            <Link to="/turning-points" className="group bg-slate-800 rounded-xl p-6 text-slate-900 hover:bg-slate-100 transition-colors relative overflow-hidden">
               <div className="relative z-10">
                 <h3 className="text-xl font-semibold tracking-tight mb-2">Turning Points</h3>
                 <p className="text-slate-400 text-sm mb-4">Batch analyze a PGN</p>
-                <div className="flex items-center gap-1 font-semibold text-sm text-[#3b759e]">
+                <div className="flex items-center gap-1 font-semibold text-sm text-[var(--ct-accent)]">
                   Launch <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
-              <Brain size={100} className="absolute -right-6 -bottom-6 text-white/5 group-hover:scale-110 transition-transform duration-300" />
+              <Brain size={100} className="absolute -right-6 -bottom-6 text-slate-900/10 group-hover:scale-110 transition-transform duration-300" />
             </Link>
           </div>
 

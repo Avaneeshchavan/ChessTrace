@@ -1,42 +1,25 @@
-const CP_CLAMP = 800; // beyond +/-8.00, the bar just reads "winning" visually
+const CP_CLAMP = 800;
 
 export function EvalBar({ evaluation, orientation = 'white' }) {
-  const whiteFraction = evalToWhiteFraction(evaluation);
-  const flipped = orientation === 'black';
+  const whiteScore = evaluation?.type === 'mate'
+    ? Math.sign(evaluation.value) * CP_CLAMP
+    : Math.max(-CP_CLAMP, Math.min(CP_CLAMP, evaluation?.value ?? 0));
+  const fraction = 50 + whiteScore / CP_CLAMP * 50;
+  const label = !evaluation ? 'Waiting' : evaluation.type === 'mate'
+    ? `${evaluation.value < 0 ? '−' : '+'}M${Math.abs(evaluation.value)}`
+    : `${evaluation.value > 0 ? '+' : ''}${(evaluation.value / 100).toFixed(2)}`;
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div
-        className="relative w-6 bg-slate-800 rounded-sm ring-1 ring-slate-900/5"
-        style={{ height: 300 }}
-        role="meter"
-        aria-label="Engine evaluation"
-        aria-valuenow={evaluation?.value ?? 0}
-      >
-        <div
-          className="absolute left-0 right-0 bg-white transition-[height] duration-300 rounded-sm"
-          style={{
-            height: `${(flipped ? 1 - whiteFraction : whiteFraction) * 100}%`,
-            [flipped ? 'top' : 'bottom']: 0,
-          }}
-        />
+      <div className="eval-track" role="meter" aria-label="White evaluation"
+        aria-valuemin={-CP_CLAMP} aria-valuemax={CP_CLAMP} aria-valuenow={whiteScore} aria-valuetext={label}>
+        <div className="eval-fill" style={{
+          height: `${Math.max(2, Math.min(98, fraction))}%`,
+          ...(orientation === 'black' ? { top: 0, bottom: 'auto' } : {}),
+        }} />
+        <div className="eval-midpoint" />
       </div>
-      <span className="font-mono text-xs text-slate-500">{formatEval(evaluation)}</span>
+      <span className="font-mono text-xs text-slate-500">{!evaluation ? '—' : label}</span>
     </div>
   );
-}
-
-function evalToWhiteFraction(evaluation) {
-  if (!evaluation) return 0.5;
-  if (evaluation.type === 'mate') {
-    return evaluation.value > 0 ? 0.98 : 0.02;
-  }
-  const clamped = Math.max(-CP_CLAMP, Math.min(CP_CLAMP, evaluation.value));
-  return 0.5 + clamped / (CP_CLAMP * 2);
-}
-
-function formatEval(evaluation) {
-  if (!evaluation) return '—';
-  if (evaluation.type === 'mate') return `M${Math.abs(evaluation.value)}`;
-  return (evaluation.value / 100).toFixed(2);
 }
