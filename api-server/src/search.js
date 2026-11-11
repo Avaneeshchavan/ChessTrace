@@ -54,36 +54,49 @@ async function findExactMatch(prisma, fenCore) {
  * @returns {Promise<Array<{ id: string, gameId: number, halfMove: number, fenCore: string, distance: number }>>}
  */
 async function findSimilarPositions(prisma, fenCore, limit = 10, options = {}) {
-  const efSearch = options.efSearch ?? 40;
+  const opening = options.opening ?? '';
+  const era = options.era ?? null;
+  const filtered = Boolean(opening || era !== null);
+  const candidateLimit = filtered ? 1000 : limit;
+  const efSearch = filtered ? 1000 : (options.efSearch ?? 40);
   const fullFen = fenCoreToFullFen(fenCore);
-  const vec = computeStructuralVector(fullFen);
-  const vecLiteral = toPgvectorLiteral(vec);
+  const vecLiteral = toPgvectorLiteral(computeStructuralVector(fullFen));
 
-  // hnsw.ef_search is a per-session GUC; setting it inside the same
-  // transaction/connection as the query that follows.
+  // Find nearest positions before joining game metadata, so PostgreSQL can use
+  // the HNSW ordering. Optional filters use a bounded wider candidate pool.
   const rows = await prisma.$transaction([
-    prisma.$executeRawUnsafe(`SET LOCAL hnsw.ef_search = ${Number(efSearch)}`),
+    prisma.$queryRaw`SELECT set_config('hnsw.ef_search', ${String(efSearch)}, true)`,
     prisma.$queryRawUnsafe(
       `
-      SELECT
-        p.id::text AS id,
-        p."gameId" AS "gameId",
-        p."halfMove" AS "halfMove",
-        p."fenCore" AS "fenCore",
-        p.vector <-> $1::vector AS distance,
-        g."whiteName",
-        g."blackName",
-        g."event",
-        g."result",
-        g."playedAt"
-      FROM "Position" p
-      JOIN "Game" g ON p."gameId" = g.id
-      WHERE p.vector IS NOT NULL
-      ORDER BY p.vector <-> $1::vector
-      LIMIT $2
+      WITH nearest AS MATERIALIZED (
+        SELECT p.id, p."gameId", p."halfMove", p."fenCore", p.vector <-> $1::vector AS distance
+        FROM "Position" p
+        WHERE p.vector IS NOT NULL
+        ORDER BY p.vector <-> $1::vector
+        LIMIT $2
+      )
+      SELECT n.id::text AS id, n."gameId", n."halfMove", n."fenCore", n.distance,
+        g."whiteName", g."blackName", g.event, g.result, g."playedAt",
+        tags.opening, tags.eco, tags."startFen"
+      FROM nearest n
+      JOIN "Game" g ON n."gameId" = g.id
+      CROSS JOIN LATERAL (
+        SELECT substring(g.pgn FROM '\\[Opening "([^"]+)"\\]') AS opening,
+          substring(g.pgn FROM '\\[ECO "([A-E][0-9]{2})"\\]') AS eco,
+          substring(g.pgn FROM '\\[FEN "([^"]+)"\\]') AS "startFen"
+      ) tags
+      WHERE ($3::text = '' OR strpos(lower(coalesce(tags.opening, '')), lower($3)) > 0
+        OR starts_with(lower(coalesce(tags.eco, '')), lower($3)))
+        AND ($4::int IS NULL OR extract(year FROM g."playedAt") >= $4
+          AND extract(year FROM g."playedAt") < $4 + 10)
+      ORDER BY n.distance, n.id
+      LIMIT $5
       `,
       vecLiteral,
-      limit
+      candidateLimit,
+      opening,
+      era,
+      limit,
     ),
   ]);
 

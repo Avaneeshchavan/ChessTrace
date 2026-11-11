@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Chess, DEFAULT_POSITION } from 'chess.js';
+import { SimilarPositions } from '../components/Board/SimilarPositions';
 import { Board } from '../components/Board/Board';
 import { EnginePanel } from '../components/EnginePanel/EnginePanel';
 import { useStockfish } from '../hooks/useStockfish';
@@ -80,6 +81,7 @@ export default function Sandbox() {
           </button>
           {searchError && <p role="alert" className="text-sm text-red-700">{searchError}</p>}
           {result && <p role="status" className="text-sm">{result.matches.length} {result.matchType === 'exact' ? 'exact' : 'similar'} positions found.</p>}
+          {!position.error && <SimilarPositions key={position.fen} fen={position.fen} />}
         </section>
         <section className="space-y-3">
           {position.engineFen ? <EnginePanel {...engine} />

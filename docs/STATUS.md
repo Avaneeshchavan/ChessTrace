@@ -1,6 +1,6 @@
 # ChessTrace status
 
-Updated 2026-11-11 on branch `task/blockers`; B2 (1.1–1.4), B3 (2.1–2.3), and B4 (3.1–3.3) are implemented.
+Updated 2026-11-11 on branch `task/blockers`; B2 (1.1–1.4), B3 (2.1–2.3), B4 (3.1–3.3), and B5 (4.1–4.4) are implemented.
 
 ## Verification
 
@@ -25,7 +25,7 @@ Neon baseline recovery, HNSW rebuild, and SM-2 deploy succeeded. Prisma reports 
 | Missing API start script | **FIXED** | `api-server/package.json:5` points main at `src/index.js`; line 12 defines `start`. |
 | Vision Uvicorn module path | **FIXED** | `render.yaml:27` uses `app.main:app`, with `rootDir: vision-engine` at line 25. API build includes Prisma generation at line 6 and DIRECT_URL at line 11. |
 | SM-2 test harness | **FIXED** | `api-server/src/lib/sm2.test.js:1` uses `node:test` and strict assertions. `api-server/package.json:11` runs `node --test`. |
-| Chess.com import | **STILL BROKEN** | `api-server/src/routes/gameRoutes.js:27` still returns HTTP 501 for Chess.com URLs. Task 1.5 was outside this request. |
+| Chess.com import | **FIXED** | Turning Points resolves completed standard games in the public monthly archive using the game URL, either player’s username, and the month it ended. |
 
 ## Deployment notes
 
@@ -46,3 +46,11 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 - `POST /detect` and `POST /parse-screenshot`: per-square scores and review flags, with bounded in-memory uploads. Both endpoint contract tests passed.
 - Headless Chrome: real upload, flagged-square correction, invalid-position guard, and explicit search with the corrected FEN verified. The search response was mocked for this UI test; live search was checked separately.
 - [VISION_EVAL.md](VISION_EVAL.md): 108 synthetic boards; 99.71% per square, 90.74% exact placement, 0% exact six-field FEN. Real screenshots are not yet evaluated.
+
+
+## B5 features
+
+- Turning Points accepts Lichess, Chess.com, or a single pasted PGN. PGN parsing and Stockfish run in workers. The depth defaults to 12. The three largest mover losses above 150 centipawns with a usable engine move become puzzles.
+- Vault saves and edits multiple motifs. An SM-2 review and its history are recorded atomically. The weekly chart uses ratings from the last 90 days and counts quality 3 or higher as a reported solve.
+- Sandbox validates drops and gates search on FEN validity. Stockfish can still use corrected castling or en passant metadata when the board is safe to analyze.
+- Similar positions returns up to ten HNSW matches. Opening and decade filters apply to the nearest 1,000 candidates. A result opens its stored game at the matching ply. Live PostgreSQL EXPLAIN confirmed the HNSW index scan.
