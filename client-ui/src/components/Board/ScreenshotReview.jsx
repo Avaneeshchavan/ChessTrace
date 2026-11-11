@@ -33,13 +33,21 @@ export function ScreenshotReview({ result, searching, onSearch, onEdit }) {
   }
 
   return (
-    <section className="mt-5 rounded-xl bg-white ring-1 ring-slate-200 p-4 space-y-3" aria-label="Review detected position">
+    <section className="screenshot-review mt-5 rounded-xl bg-white ring-1 ring-slate-200 p-4 space-y-3" aria-label="Review detected position">
       <div>
         <h3 className="font-semibold text-slate-900">Review the detected board</h3>
         <p className="text-sm text-slate-600">
-          {flagged.length ? `${flagged.length} dashed square(s) need a closer look. ` : ''}
-          Select any square to fix its piece before searching.
+          Select a square to correct its piece, or confirm it is right before searching.
         </p>
+      </div>
+      <div className="review-progress">
+        <p role="status" className="text-sm font-medium">
+          {flagged.length ? `${flagged.length} ${flagged.length === 1 ? 'square needs' : 'squares need'} review` : 'No squares left to review'}
+        </p>
+        {!!flagged.length && <button type="button" className="ct-quiet" onClick={() => {
+          const next = (flagged.indexOf(selected) + 1) % flagged.length;
+          setSelected(flagged[next]);
+        }}>Review next square</button>}
       </div>
       <div className="relative max-w-md mx-auto">
         <Board fen={fen} orientation={orientation} interactive={false} viewOnly />
@@ -57,7 +65,7 @@ export function ScreenshotReview({ result, searching, onSearch, onEdit }) {
                 aria-pressed={selected === key}
                 title={label}
                 onClick={() => setSelected(key)}
-                className={`relative min-w-0 min-h-0 outline-offset-[-3px] focus-visible:outline-2 focus-visible:outline-white hover:bg-white/20 ${selected === key ? 'ring-2 ring-inset ring-sky-500' : ''}`}
+                className={`relative min-w-0 min-h-0 outline-offset-[-3px] focus-visible:outline-2 focus-visible:outline-[var(--ct-ink)] hover:bg-white/20 ${selected === key ? 'ring-2 ring-inset ring-sky-500' : ''}`}
               >
                 {tile?.flagged && <span aria-hidden="true" className="absolute inset-[3px] rounded-sm border-2 border-dashed border-red-600 pointer-events-none" />}
               </button>
@@ -74,7 +82,7 @@ export function ScreenshotReview({ result, searching, onSearch, onEdit }) {
             {Object.entries(PIECES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
           </select>
           {squares[selected]?.flagged && (
-            <button type="button" onClick={() => setPiece(selectedPiece ?? null)} className="text-sky-800 underline">Confirm square</button>
+            <button type="button" onClick={() => setPiece(selectedPiece ?? null)} className="ct-quiet">Confirm square</button>
           )}
         </div>
       )}
@@ -86,7 +94,7 @@ export function ScreenshotReview({ result, searching, onSearch, onEdit }) {
             <option value="b">Black</option>
           </select>
         </label>
-        <button type="button" onClick={flipDetection} className="text-sky-800 underline">Reverse detected orientation</button>
+        <button type="button" onClick={flipDetection} className="review-text-action text-sky-800 underline">Reverse detected orientation</button>
       </div>
       <details className="text-sm">
         <summary className="cursor-pointer text-slate-600">Castling rights</summary>
@@ -105,10 +113,13 @@ export function ScreenshotReview({ result, searching, onSearch, onEdit }) {
           ))}
         </fieldset>
       </details>
-      <p className="break-all font-mono text-xs text-slate-600">{fen}</p>
+      <details className="text-sm">
+        <summary className="cursor-pointer text-slate-600">Position code (FEN)</summary>
+        <p className="mt-2 break-all font-mono text-xs text-slate-600">{fen}</p>
+      </details>
       {error && <p role="status" className="text-sm text-red-700">{error}</p>}
       <button type="button" disabled={!!error || searching} onClick={() => onSearch(fen)}
-        className="w-full rounded-md bg-[var(--ct-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        className="ct-button w-full">
         {searching ? 'Searching…' : 'Search this position'}
       </button>
     </section>

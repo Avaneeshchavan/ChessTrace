@@ -13,3 +13,5 @@ Chrome captures of the local client, using the local vision service and public g
 Mobile Lighthouse on the production preview landing page scored 98 for performance and 100 for accessibility, best practices, and SEO. Chrome checks covered desktop and 390px mobile navigation, the registration CTA, keyboard upload, corrected castling rights, a live exact match, replay, and board alignment while resizing with reduced motion enabled.
 
 See the ten ranked findings and the five implemented changes in [CRITIQUE.md](CRITIQUE.md).
+
+Follow-up: [November 2026 product design review](REVIEW-2026-11.md), ranked against these captures and the current components.

@@ -146,3 +146,21 @@
   .sandbox-layout { grid-template-columns: minmax(0,1fr); }
   .sandbox-similar { grid-column: auto; }
 }
+
+/* Keep correction actions legible and comfortably tappable beside the board. */
+.review-progress { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; padding: .65rem; border-radius: .4rem; background: var(--ct-field); }
+.screenshot-review select { min-height: 44px; padding: .5rem .65rem; border-color: #96816a; }
+.screenshot-review summary, .review-text-action { min-height: 44px; align-content: center; }
+.screenshot-review fieldset label { min-height: 44px; }
+.screenshot-review input[type="checkbox"] { width: 1.125rem; height: 1.125rem; accent-color: var(--ct-accent); }
+.sandbox-position summary { min-height: 44px; align-content: center; cursor: pointer; color: var(--ct-muted); }
+.sandbox-position input { min-height: 44px; border-color: #96816a; }
+.engine-heading { display: flex; flex-direction: column; gap: .35rem; }
+.engine-heading > span:last-child { font-family: var(--ct-font-ui); text-transform: none; letter-spacing: 0; }
+.engine-panel .eval-track { height: 10rem; }
+.sandbox-layout { grid-template-columns: minmax(0,36rem) minmax(17rem,1fr); }
+.sandbox-similar { max-width: 36rem; }
+@media (max-width: 1060px) {
+  .sandbox-layout { grid-template-columns: minmax(0,1fr); }
+  .sandbox-layout > section, .sandbox-similar { width: 100%; max-width: 36rem; }
+}

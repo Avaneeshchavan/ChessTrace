@@ -71,10 +71,14 @@ export default function Sandbox() {
       </header>
       <div className="sandbox-layout">
         <section className="sandbox-board min-w-0 space-y-4">
-          <label className="block text-sm font-medium">FEN position
+          <details className="sandbox-position" open={!!position.error}>
+            <summary>Load a position (FEN)</summary>
+            <label className="mt-2 block text-sm font-medium">Position code
+            <span className="block text-sm font-normal text-slate-500">Paste a FEN to explore a specific position.</span>
             <input type="text" value={fen} onChange={event => changeFen(event.target.value)}
               className="mt-1 w-full rounded-md border border-slate-300 p-2 font-mono text-xs" />
           </label>
+          </details>
           {position.error && <p role="status" className="text-sm text-red-700">{position.error} Matching games is unavailable until the position is valid.</p>}
           <div className="max-w-xl">
             <Board fen={position.chess?.fen() ?? '8/8/8/8/8/8/8/8'} onMove={movePiece}
@@ -90,7 +94,7 @@ export default function Sandbox() {
         </section>
         <section className="space-y-3">
           <div className="ct-panel"><MoveLedger moves={moves} /></div>
-          {position.engineFen ? <EnginePanel {...engine} />
+          {position.engineFen ? <EnginePanel {...engine} fen={position.engineFen} />
             : <p className="rounded bg-slate-100 p-4 text-sm">Stockfish needs a position it can analyze safely. Check the FEN and try again.</p>}
           {position.error && position.engineFen && <p className="text-sm text-slate-600">Stockfish is analyzing with corrected position metadata.</p>}
         </section>
