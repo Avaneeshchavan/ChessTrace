@@ -17,7 +17,8 @@ from pydantic import BaseModel, Field
 class SquareResult(BaseModel):
     square: str  # algebraic, e.g. "e4"
     piece: Optional[str] = None  # "wP","bK",... or None for empty
-    confidence: float  # 0.0-1.0, best template-match score for this square
+    confidence: float = Field(ge=0, le=1)
+    needs_review: bool = False
     ambiguous_margin: bool = Field(
         False,
         description=(

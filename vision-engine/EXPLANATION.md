@@ -8,24 +8,27 @@ chess.js, and a worked example.
 
 ---
 
-## 0. Honesty note on the template library (read this first)
+## 0. Current sprite matcher (B4)
 
-This environment has no network access, so the template library was NOT
-built from real Chess.com "neo" or Lichess "cburnett" sprite assets.
-`scripts/generate_templates.py` generates shape-accurate stand-ins from
-Unicode chess glyphs (DejaVu Sans has real glyphs at U+265A-265F),
-rendered as solid silhouettes with theme-appropriate fill/outline
-contrast. Board detection, grid slicing, orientation detection, FEN
-assembly, and FEN validation are all exercised end-to-end and produce a
-real, valid, chess.js/python-chess-parseable FEN — but piece-matching
-accuracy against REAL screenshots will depend on swapping in templates
-cropped from the real site assets, which requires no code changes (see
-the docstring at the top of `generate_templates.py` for exactly how).
+Auto detection ranks classic, neo_wood, neon and wood candidates using
+`app/pipeline/sprite_matching.py`. The atlas uses the bundled RGBA
+piece assets. Each candidate is composed on the observed square's local
+background, preserving shape and piece color. Small translations and scale
+variants help when board crops are slightly misaligned. The match score
+is the proportion of background-relative squared error explained by the
+candidate. The runner-up margin detects ambiguous matches; weak fits and
+uncertain empty squares are flagged for review. Scores are not calibrated
+probabilities. The two legacy glyph matchers are a fallback for their
+original fixtures.
 
-The worked example in section 4 uses synthetic test images for the same
-reason — there was no way to pull a real screenshot in this sandbox.
+`/detect` and `/parse-screenshot` share an in-memory upload path.
+Every square carries its match score and review flag, and Origin Lens
+waits for explicit search after review. See [VISION_EVAL.md](../docs/VISION_EVAL.md)
+for synthetic-only results and [README.md](README.md) for real fixture input.
 
----
+The sections below describe the **legacy glyph pipeline** and its
+original worked example. Rebuild its templates with
+`python -m scripts.generate_legacy_templates`.
 
 ## 1. Confidence threshold: what it is and why
 
@@ -162,7 +165,7 @@ doesn't know these two squares are wrong, but it correctly knows it
 isn't sure about them, which is the honest thing it can offer given
 silhouette-only shape matching against synthetic stand-in templates.
 
-To reproduce: `python -m scripts.generate_templates` (builds the
+To reproduce: `python -m scripts.generate_legacy_templates` (builds the
 template library), `python -m scripts.make_synthetic_test_board` (builds
 the two example screenshots), `python -m tests.test_pipeline` (runs the
 full pipeline against both and checks against ground truth).
