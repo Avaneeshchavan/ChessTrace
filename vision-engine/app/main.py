@@ -52,7 +52,11 @@ app = FastAPI(
     description="Digital-chessboard-screenshot -> FEN. See EXPLANATION.md for scope and limitations.",
 )
 
-allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+allowed_origins = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,5 +1,5 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+
 const { validateFen } = require('chess.js');
 const { checkSyntacticLegality } = require('../legality');
 const { findExactMatch, findSimilarPositions, findGameReplay, fenCoreToFullFen } = require('../search');
@@ -19,7 +19,7 @@ function getSearchPosition(fen) {
   return { fenCore };
 }
 
-function createSearchRouter(prisma = new PrismaClient()) {
+function createSearchRouter(prisma = require('../db')) {
   const router = express.Router();
 
   router.get('/similar', async (req, res) => {

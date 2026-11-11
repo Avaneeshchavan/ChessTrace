@@ -13,15 +13,15 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Database connection
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('./db');
 
 // Middleware
-const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'];
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',').map(origin => origin.trim()).filter(Boolean);
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else callback(new Error('Not allowed by CORS'));
+    else callback(null, false);
   },
   credentials: true
 }));
@@ -49,20 +49,29 @@ app.use('/api/games', gameRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 
-// Start server
 async function startServer() {
-  try {
-    await prisma.$connect();
-    console.log('Database connected successfully.');
-  } catch (err) {
-    console.error('Failed to connect to the database on startup (possibly a Neon cold start):', err);
-    // Don't process.exit(1) so the app stays alive for health checks, 
-    // but the clear error is logged.
+  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is required in production.');
   }
+  const compact = process.env.USE_COMPACT_STORAGE === 'true';
+  const tables = compact ? ['"Game"', 'compact_game', 'position_v2', 'position_game'] : ['"Game"', '"Position"'];
+  const checks = await prisma.$queryRaw`
+    SELECT name, to_regclass(name) IS NOT NULL AS present
+    FROM unnest(${tables}::text[]) AS names(name)`;
+  const missing = checks.filter(check => !check.present).map(check => check.name);
+  if (missing.length) throw new Error(`Missing search tables: ${missing.join(', ')}`);
 
-  app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-  });
+  const [stats] = compact
+    ? await prisma.$queryRaw`SELECT (SELECT count(*)::text FROM compact_game) AS games,
+        count(*)::text AS positions, count(vector)::text AS vectors FROM position_v2`
+    : await prisma.$queryRaw`SELECT (SELECT count(*)::text FROM "Game") AS games,
+        (SELECT reltuples::bigint::text FROM pg_class WHERE oid = '"Position"'::regclass) AS "estimatedPositions"`;
+  console.log('Search corpus', { mode: compact ? 'compact' : 'legacy', ...stats });
+  app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 }
 
-startServer();
+startServer().catch(async error => {
+  console.error('API startup failed:', error.code || error.message);
+  await prisma.$disconnect();
+  process.exitCode = 1;
+});
