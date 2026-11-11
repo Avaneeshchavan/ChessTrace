@@ -1,5 +1,7 @@
 # ChessTrace corpus and storage
 
+The figures below describe the legacy layout. See [Compact corpus capacity](CAPACITY_MVP.md) for the separate M2 benchmark and the fresh-corpus budget.
+
 Capacity measured on Neon on 2026-11-11 using the first 1,000 distinct, replayable games in the bundled `api-server/data/legendary_sacrifices.pgn`. The script created and removed a temporary schema; it did not import these games into the app's tables.
 
 | Measurement | Result |
