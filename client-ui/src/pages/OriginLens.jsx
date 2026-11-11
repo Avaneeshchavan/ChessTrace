@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, AlertTriangle, Search, Loader2 } from 'lucide-react';
+import { ScreenshotReview } from '../components/Board/ScreenshotReview';
 import { useServiceHealth } from '../hooks/useServiceHealth';
 
 import { API_BASE_URL as API_URL, VISION_ENGINE_URL as VISION_URL } from '../config/api';
@@ -7,9 +8,10 @@ import { API_BASE_URL as API_URL, VISION_ENGINE_URL as VISION_URL } from '../con
 export default function OriginLens() {
   const { status: visionHealthStatus } = useServiceHealth(VISION_URL);
   // Pipeline states
-  const [phase, setPhase] = useState('idle'); // idle | uploading | validating | searching | done | error
+  const [phase, setPhase] = useState('idle'); // idle | uploading | review | searching | done | error
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
+  const requestRef = useRef(null);
 
   // Vision engine response
   const [visionResult, setVisionResult] = useState(null);
@@ -23,10 +25,18 @@ export default function OriginLens() {
   // Preview image
   const [previewUrl, setPreviewUrl] = useState(null);
 
+  useEffect(() => {
+    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+  }, [previewUrl]);
+  useEffect(() => () => requestRef.current?.abort(), []);
+
   // ---- Upload Handler ----
   const processFile = useCallback(async (file) => {
     if (!file) return;
 
+    requestRef.current?.abort();
+    const request = new AbortController();
+    requestRef.current = request;
     // Show preview
     setPreviewUrl(URL.createObjectURL(file));
     setErrorMessage('');
@@ -42,6 +52,7 @@ export default function OriginLens() {
       const visionRes = await fetch(`${VISION_URL}/parse-screenshot`, {
         method: 'POST',
         body: formData,
+        signal: request.signal,
       });
 
       if (!visionRes.ok) {
@@ -50,33 +61,40 @@ export default function OriginLens() {
       }
 
       const vision = await visionRes.json();
+      if (request.signal.aborted) return;
       setVisionResult(vision);
+      setPhase('review');
+    } catch (err) {
+      if (request.signal.aborted) return;
+      setPhase('error');
+      setErrorMessage(err.message || 'Could not analyze the screenshot.');
+    }
+  }, []);
 
-      // Step 2: Validate FEN
-      setPhase('validating');
-      if (!vision.fen_valid) {
-        setPhase('error');
-        setErrorMessage(
-          `Invalid FEN detected${vision.fen_validation_error ? `: ${vision.fen_validation_error}` : ''}. ` +
-          `${vision.low_confidence_squares?.length || 0} low-confidence square(s) flagged.`
-        );
-        return;
-      }
-
-      // Step 3: Search api-server
-      setPhase('searching');
+  const searchPosition = useCallback(async (fen) => {
+    requestRef.current?.abort();
+    const request = new AbortController();
+    requestRef.current = request;
+    setErrorMessage('');
+    setSearchResult(null);
+    setPhase('searching');
+    try {
       const searchRes = await fetch(
-        `${API_URL}/api/search?fen=${encodeURIComponent(vision.fen)}`
+        `${API_URL}/api/search?fen=${encodeURIComponent(fen)}`,
+        { signal: request.signal },
       );
 
       if (!searchRes.ok) {
-        throw new Error(`Search API returned ${searchRes.status}`);
+        const body = await searchRes.json().catch(() => ({}));
+        throw new Error(body.error || `Search API returned ${searchRes.status}`);
       }
 
       const search = await searchRes.json();
+      if (request.signal.aborted) return;
       setSearchResult(search);
       setPhase('done');
     } catch (err) {
+      if (request.signal.aborted) return;
       setPhase('error');
       setErrorMessage(err.message || 'An unexpected error occurred.');
     }
@@ -91,19 +109,27 @@ export default function OriginLens() {
 
   const handleFileSelect = useCallback((e) => {
     const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file after a failed upload
     processFile(file);
   }, [processFile]);
 
-  const isProcessing = ['uploading', 'validating', 'searching'].includes(phase);
+  function clearSearch() {
+    if (phase === 'searching') requestRef.current?.abort();
+    setSearchResult(null);
+    setErrorMessage('');
+    setPhase('review');
+  }
+
+  const isProcessing = ['uploading', 'searching'].includes(phase);
   const confidencePct = visionResult
     ? Math.round((visionResult.theme_match_confidence ?? 0) * 100)
     : null;
 
   return (
-    <div className="p-8 flex gap-8 h-full">
+    <div className="p-4 md:p-8 flex flex-col lg:flex-row gap-8 min-h-full">
       {/* Left: Upload Zone */}
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="w-full max-w-md">
+      <div className="flex-1 min-w-0 flex flex-col items-center">
+        <div className="w-full max-w-xl">
           {visionHealthStatus === 'waking' && (
             <div className="bg-slate-50 border border-[#3b759e]/30 rounded-lg p-3 text-sm mb-4 flex items-center gap-3">
               <Loader2 size={16} className="text-[#3b759e] animate-spin shrink-0" />
@@ -180,7 +206,7 @@ export default function OriginLens() {
                     ? 'bg-amber-50 ring-1 ring-amber-200 text-amber-700'
                     : 'bg-red-50 ring-1 ring-red-200 text-red-600'
               }`}>
-                Theme confidence: {confidencePct}%
+                Template match: {confidencePct}%
               </span>
               <span className="text-xs text-slate-400">
                 Theme: {visionResult.theme_used} · Orientation: {visionResult.orientation}
@@ -194,37 +220,23 @@ export default function OriginLens() {
               <div className="flex items-start gap-3">
                 <AlertTriangle size={20} className="text-red-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-red-700 mb-1">Recognition Failed</p>
+                  <p className="text-sm font-semibold text-red-700 mb-1">{visionResult ? 'Search failed' : 'Recognition failed'}</p>
                   <p className="text-sm text-red-600">{errorMessage}</p>
-                  {visionResult?.low_confidence_squares?.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs font-medium uppercase tracking-wider text-red-500 mb-1">Low-confidence squares</p>
-                      <div className="flex flex-wrap gap-1">
-                        {visionResult.low_confidence_squares.map((sq) => (
-                          <span key={sq} className="bg-red-100 text-red-700 text-xs font-mono px-2 py-0.5 rounded">
-                            {sq}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+
                 </div>
               </div>
             </div>
           )}
 
-          {/* Detected FEN display */}
-          {visionResult?.fen_valid && (
-            <div className="mt-4 bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-4">
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-1">Detected FEN</p>
-              <p className="font-mono text-xs text-slate-700 break-all">{visionResult.fen}</p>
-            </div>
+          {visionResult && (
+            <ScreenshotReview result={visionResult} searching={phase === 'searching'}
+              onSearch={searchPosition} onEdit={clearSearch} />
           )}
         </div>
       </div>
 
       {/* Right: Results Panel */}
-      <div className="w-96 bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-6 flex flex-col">
+      <div className="w-full lg:w-96 lg:shrink-0 bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-6 flex flex-col">
         <h3 className="text-lg font-semibold tracking-tight text-slate-900 mb-1">Match Lineage</h3>
         {searchResult && (
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-4">
@@ -312,7 +324,6 @@ export default function OriginLens() {
 function phaseLabel(phase) {
   switch (phase) {
     case 'uploading': return 'Analyzing Screenshot…';
-    case 'validating': return 'Validating Position…';
     case 'searching': return 'Searching Database…';
     default: return 'Processing…';
   }

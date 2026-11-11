@@ -8,3 +8,4 @@ The 2026-11-11 Neon scratch run measured **1,000 games and 79,855 positions** fr
 - [Benchmarks](docs/BENCHMARKS.md): latency, recall@10 and methodology.
 - [Migration recovery](docs/MIGRATIONS.md): Neon baseline recovery and live vault check.
 - [Project status](docs/STATUS.md): current checks and remaining blockers.
+- [Vision evaluation](docs/VISION_EVAL.md): synthetic accuracy and confusion counts for the screenshot review flow.
