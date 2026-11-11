@@ -58,3 +58,7 @@ pnpm-debug.log*
 # Local chess corpus and ingestion progress
 /api-server/data/corpus/
 /api-server/.ingest-checkpoints/
+
+# Private vision evaluation inputs
+/vision-engine/tests/eval/images/
+/vision-engine/tests/eval/manifest.csv
