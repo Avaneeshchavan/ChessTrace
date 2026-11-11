@@ -15,3 +15,5 @@ Mobile Lighthouse on the production preview landing page scored 98 for performan
 See the ten ranked findings and the five implemented changes in [CRITIQUE.md](CRITIQUE.md).
 
 Follow-up: [November 2026 product design review](REVIEW-2026-11.md), ranked against these captures and the current components.
+
+[M1 verification](../M1.md) includes updated Origin Lens and Sandbox captures at 1280px and 390px.

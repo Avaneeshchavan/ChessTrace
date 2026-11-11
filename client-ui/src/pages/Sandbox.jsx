@@ -71,13 +71,13 @@ export default function Sandbox() {
       </header>
       <div className="sandbox-layout">
         <section className="sandbox-board min-w-0 space-y-4">
-          <details className="sandbox-position" open={!!position.error}>
+          <details className="sandbox-position">
             <summary>Load a position (FEN)</summary>
             <label className="mt-2 block text-sm font-medium">Position code
-            <span className="block text-sm font-normal text-slate-500">Paste a FEN to explore a specific position.</span>
-            <input type="text" value={fen} onChange={event => changeFen(event.target.value)}
-              className="mt-1 w-full rounded-md border border-slate-300 p-2 font-mono text-xs" />
-          </label>
+              <span className="block text-sm font-normal text-slate-500">Paste a FEN to explore a specific position.</span>
+              <input type="text" value={fen} onChange={event => changeFen(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 p-2 font-mono text-xs" />
+            </label>
           </details>
           {position.error && <p role="status" className="text-sm text-red-700">{position.error} Matching games is unavailable until the position is valid.</p>}
           <div className="max-w-xl">
