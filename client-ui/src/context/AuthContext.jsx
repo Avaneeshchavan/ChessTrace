@@ -3,6 +3,7 @@ import { createContext, useContext, useState } from 'react';
 import { API_BASE_URL } from '../config/api';
 
 const AuthContext = createContext(null);
+const authRequest = { timeoutMs: 45_000 };
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
@@ -16,7 +17,7 @@ export const AuthProvider = ({ children }) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
-    });
+    }, authRequest);
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Login failed');
@@ -33,7 +34,7 @@ export const AuthProvider = ({ children }) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, displayName }),
-    });
+    }, authRequest);
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Registration failed');

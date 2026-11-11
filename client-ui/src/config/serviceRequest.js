@@ -1,8 +1,21 @@
 const services = new Map();
 const RECHECK_AFTER_MS = 14 * 60 * 1000;
-const WAKE_TIMEOUT_MS = 70_000;
+const WAKE_TIMEOUT_MS = 120_000;
+const PROBE_TIMEOUT_MS = 65_000;
 const unavailable = new Set([502, 503, 504]);
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+export class ServiceUnavailableError extends Error {
+  constructor() {
+    super('ChessTrace couldn’t connect to the server. Try again in a moment.');
+  }
+}
+
+export class ServiceRequestInterruptedError extends Error {
+  constructor() {
+    super('The server interrupted this request. Check the result before trying again.');
+  }
+}
 
 export function serviceHealth(url) {
   if (!services.has(url)) {
@@ -28,11 +41,11 @@ export function serviceHealth(url) {
       update(status === 'checking' ? 'checking' : 'waking');
       pending = (async () => {
         const deadline = Date.now() + WAKE_TIMEOUT_MS;
-        while (Date.now() < deadline) {
+        while (Date.now() < deadline && globalThis.navigator?.onLine !== false) {
           try {
             const response = await fetch(`${url}/health`, {
               cache: 'no-store',
-              signal: AbortSignal.timeout(Math.min(8000, Math.max(1, deadline - Date.now()))),
+              signal: AbortSignal.timeout(Math.min(PROBE_TIMEOUT_MS, Math.max(1, deadline - Date.now()))),
             });
             if (response.ok && (await response.json()).status === 'ok') {
               contact();
@@ -42,10 +55,10 @@ export function serviceHealth(url) {
             // A sleeping host can time out or return a proxy page.
           }
           update('waking');
-          await sleep(3000);
+          if (Date.now() < deadline) await sleep(Math.min(2500, deadline - Date.now()));
         }
         update('error');
-        throw new Error('The server is still unavailable. Use Retry to check again.');
+        throw new ServiceUnavailableError();
       })().finally(() => { pending = undefined; });
       return pending;
     }
@@ -61,12 +74,14 @@ export function serviceHealth(url) {
   return services.get(url);
 }
 
-export async function fetchService(url, path, options) {
+export async function fetchService(url, path, options, { timeoutMs } = {}) {
   const health = serviceHealth(url);
   await health.check();
   const send = async () => {
     options?.signal?.throwIfAborted();
-    const response = await fetch(url + path, options);
+    const timeout = timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined;
+    const signal = timeout && options?.signal ? AbortSignal.any([timeout, options.signal]) : timeout ?? options?.signal;
+    const response = await fetch(url + path, { ...options, signal });
     if (unavailable.has(response.status) || response.headers.get('content-type')?.includes('text/html')) {
       throw new Error('The server interrupted this request. Please try again.');
     }
@@ -85,6 +100,6 @@ export async function fetchService(url, path, options) {
       return send();
     }
     waking.catch(() => {});
-    throw new Error('The server interrupted this request. Check the result before trying again.');
+    throw new ServiceRequestInterruptedError();
   }
 }
