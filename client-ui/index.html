@@ -2,9 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <meta name="theme-color" content="#161411" />
+    <meta name="description" content="Trace chess positions from screenshots, replay historical matches, and study with Stockfish." />
+    <script>
+      if (location.pathname === '/') {
+        const preview = document.createElement('link');
+        preview.rel = 'preload';
+        preview.as = 'image';
+        preview.imageSrcset = '/product/origin-lens-720.webp 720w, /product/origin-lens.webp 1100w';
+        preview.imageSizes = '(max-width: 760px) calc(100vw - 32px), (max-width: 1350px) 54vw, 752px';
+        preview.fetchPriority = 'high';
+        document.head.append(preview);
+      }
+    </script>
+    <title>ChessTrace — Chess study room</title>
   </head>
   <body>
     <div id="root"></div>
