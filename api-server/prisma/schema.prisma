@@ -93,6 +93,7 @@ model User {
   updatedAt    DateTime      @updatedAt
   savedPuzzles SavedPuzzle[]
   activityLogs ActivityLog[]
+  attempts     Attempt[]
 }
 
 model SavedPuzzle {
@@ -102,6 +103,7 @@ model SavedPuzzle {
   fen             String
   initialMove     String?
   solutionPgn     String?
+  mateIn          Int?
   reviewStatus    String   @default("DUE_TODAY") // DUE_TODAY, LEARNING, MASTERED
   easeFactor      Float    @default(2.5)
   intervalDays    Int      @default(0)
@@ -111,8 +113,27 @@ model SavedPuzzle {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   tags            Tag[]    @relation("PuzzleTags")
+  attempts        Attempt[]
 
   @@index([userId, nextReviewAt])
+}
+
+model Attempt {
+  id        String      @id @default(uuid())
+  puzzleId  String
+  puzzle    SavedPuzzle @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moveUci   String
+  correct   Boolean
+  usedHint  Boolean
+  evalLoss  Int?
+  millis    Int
+  motifs    String[]
+  createdAt DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@index([puzzleId])
 }
 
 model Tag {
