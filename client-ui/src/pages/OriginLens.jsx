@@ -1,10 +1,12 @@
 import { fetchService } from '../config/serviceRequest';
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, AlertTriangle, Search, Loader2, ArrowUpRight } from 'lucide-react';
+import { Upload, AlertTriangle, Search, Loader2, ArrowUpRight, Camera } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { GameReplay } from '../components/Board/GameReplay';
 import { ScreenshotReview } from '../components/Board/ScreenshotReview';
 import ServiceHealthBanner from '../components/ServiceHealthBanner';
 import { useServiceHealth } from '../hooks/useServiceHealth';
+import { takeSharedImage } from '../utils/sharedImage';
 
 import { API_BASE_URL as API_URL, VISION_ENGINE_URL as VISION_URL } from '../config/api';
 
@@ -13,8 +15,11 @@ export default function OriginLens() {
   // Pipeline states
   const [phase, setPhase] = useState('idle'); // idle | uploading | review | searching | done | error
   const [dragOver, setDragOver] = useState(false);
+  const [params, setParams] = useSearchParams();
   const fileRef = useRef(null);
+  const cameraRef = useRef(null);
   const requestRef = useRef(null);
+  const sharedRequest = useRef(null);
 
   // Vision engine response
   const [visionResult, setVisionResult] = useState(null);
@@ -75,6 +80,25 @@ export default function OriginLens() {
       setErrorMessage(err.message || 'Could not analyze the screenshot.');
     }
   }, []);
+
+  useEffect(() => {
+    const id = params.get('share');
+    if (!id) return;
+    if (sharedRequest.current?.id !== id) sharedRequest.current = { id, file: takeSharedImage(id) };
+    let active = true;
+    sharedRequest.current.file.then(file => {
+      if (!active) return;
+      const next = new URLSearchParams(params);
+      next.delete('share');
+      setParams(next, { replace: true });
+      if (file) processFile(file);
+      else {
+        setErrorMessage('This shared image is unavailable. Choose a PNG, JPEG, or WebP screenshot up to 8 MiB.');
+        setPhase('error');
+      }
+    });
+    return () => { active = false; };
+  }, [params, setParams, processFile]);
 
   const searchPosition = useCallback(async (fen) => {
     requestRef.current?.abort();
@@ -157,6 +181,14 @@ export default function OriginLens() {
             </button>
             <input ref={fileRef} type="file" aria-label="Board screenshot" accept="image/png,image/jpeg,image/webp"
               className="hidden" onChange={handleFileSelect} />
+            <div className="lens-camera">
+              <button type="button" className="ct-quiet" disabled={uploadDisabled} onClick={() => cameraRef.current?.click()}>
+                <Camera size={18} aria-hidden="true" /> Take a photo
+              </button>
+              <input ref={cameraRef} type="file" aria-label="Camera image" accept="image/*" capture="environment"
+                className="hidden" onChange={handleFileSelect} />
+              <p className="text-xs text-slate-500">Screenshots are more reliable than photos of screens.</p>
+            </div>
             {previewUrl && !visionResult && (
               <div className="lens-preview">
                 <img src={previewUrl} alt="Board screenshot preview" />

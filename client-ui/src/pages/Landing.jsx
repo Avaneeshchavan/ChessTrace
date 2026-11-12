@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import ChessTraceLogo from '../components/ChessTraceLogo';
 import OpeningReplay from '../components/OpeningReplay';
 import { useAuth } from '../context/AuthContext';
+import { useOnline } from '../hooks/useOnline';
 import '../landing.css';
 
 const steps = [
@@ -19,11 +20,13 @@ const studyTools = [
 
 export default function Landing() {
   const { token } = useAuth();
+  const online = useOnline();
   const { hash } = useLocation();
   useEffect(() => {
     if (hash === '#sample-game') document.getElementById('sample-game')?.scrollIntoView();
   }, [hash]);
-  const start = token ? '/lens' : '/auth?mode=register';
+  const start = online ? (token ? '/lens' : '/auth?mode=register') : '/offline';
+  const startLabel = online ? (token ? 'Open Origin Lens' : 'Create an account') : 'Open offline tools';
   return (
     <div className="landing">
       <header className="landing-header">
@@ -41,7 +44,7 @@ export default function Landing() {
             <h1 id="landing-title" className="ct-display">Every position <em>has a history.</em></h1>
             <p className="landing-lede">Turn a board screenshot into a position you can trace, replay, and study.</p>
             <div className="landing-actions">
-              <Link className="ct-button" to={start}>{token ? 'Open Origin Lens' : 'Create an account'} <ArrowRight size={17} aria-hidden="true" /></Link>
+              <Link className="ct-button" to={start}>{startLabel} <ArrowRight size={17} aria-hidden="true" /></Link>
               <a className="landing-text-link" href="#sample-game">Try the replay <ArrowDown size={15} aria-hidden="true" /></a>
             </div>
           </div>

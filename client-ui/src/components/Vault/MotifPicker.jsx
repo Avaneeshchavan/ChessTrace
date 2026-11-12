@@ -5,7 +5,7 @@ export function MotifPicker({ value, onChange, disabled }) {
     <fieldset disabled={disabled} className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
       <legend className="mb-1 font-medium">Motifs</legend>
       {[...new Set([...MOTIFS, ...value])].map(motif => (
-        <label key={motif} className="flex items-center gap-1">
+        <label key={motif} className="flex min-h-11 min-w-11 items-center gap-1">
           <input type="checkbox" checked={value.includes(motif)} onChange={event =>
             onChange(event.target.checked ? [...value, motif] : value.filter(tag => tag !== motif))
           } />

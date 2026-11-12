@@ -74,29 +74,30 @@ export default function VaultReview() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8 h-[calc(100vh-64px)]">
-        <Loader2 size={48} className="text-[var(--ct-accent)] animate-spin" />
-      </div>
+      <main className="flex-1 flex items-center justify-center p-8 min-h-[calc(100dvh-64px)]">
+        <Loader2 size={48} className="text-[var(--ct-accent)] animate-spin" aria-hidden="true" />
+        <p role="status" className="sr-only">Loading review queue…</p>
+      </main>
     );
   }
 
-  if (error && !queue.length) return <div className="p-8" role="alert">{error} <Link to="/vault" className="underline">Back to vault</Link></div>;
+  if (error && !queue.length) return <main className="p-8"><p role="alert">{error}</p><Link to="/vault" className="inline-flex min-h-11 items-center underline">Back to vault</Link></main>;
 
   // All caught up state
   if (currentIndex >= queue.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] p-8 max-w-lg mx-auto text-center space-y-6">
+      <main className="flex flex-col items-center justify-center min-h-[calc(100dvh-64px)] p-8 max-w-lg mx-auto text-center space-y-6">
         <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
           <CheckCircle2 size={48} />
         </div>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">You're all caught up!</h2>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">You're all caught up!</h1>
           <p className="text-slate-500">0 puzzles due for review right now.</p>
         </div>
         <Link to="/vault" className="inline-flex items-center justify-center gap-2 bg-[var(--ct-accent)] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[var(--ct-accent-hover)] transition-colors w-full">
           <ArrowLeft size={18} /> Back to Vault
         </Link>
-      </div>
+      </main>
     );
   }
 
@@ -124,9 +125,10 @@ export default function VaultReview() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 md:p-8 flex flex-col h-[calc(100vh-64px)]">
+    <main className="max-w-3xl mx-auto p-4 md:p-8 flex flex-col min-h-0">
+      <h1 className="sr-only">Review puzzles</h1>
       <div className="flex items-center justify-between mb-8">
-        <Link to="/vault" className="text-slate-500 hover:text-slate-900 flex items-center gap-2">
+        <Link to="/vault" className="text-slate-500 hover:text-slate-900 flex min-h-11 items-center gap-2">
           <ArrowLeft size={18} /> Back
         </Link>
         <div className="text-sm font-medium text-slate-400">
@@ -142,7 +144,7 @@ export default function VaultReview() {
         </div>
 
         {/* Hints / Tags */}
-        <div className="flex flex-wrap gap-2 justify-center mb-8 h-8">
+        <div className="flex flex-wrap gap-2 justify-center mb-6">
           {tags.map(t => (
             <span key={t.id} className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold tracking-wide uppercase">
               {t.name}
@@ -172,7 +174,7 @@ export default function VaultReview() {
               <div className="text-center text-sm font-medium text-slate-500 mb-2">How difficult was this?</div>
               {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
               
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button 
                   disabled={isSubmitting}
                   onClick={() => handleRate(1)}
@@ -207,6 +209,6 @@ export default function VaultReview() {
         </div>
         
       </div>
-    </div>
+    </main>
   );
 }

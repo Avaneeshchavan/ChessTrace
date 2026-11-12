@@ -8,6 +8,7 @@ import { EnginePanel } from '../components/EnginePanel/EnginePanel';
 import { useStockfish } from '../hooks/useStockfish';
 import { inspectSandboxFen } from '../utils/sandboxPosition';
 import { API_BASE_URL } from '../config/api';
+import { useOnline } from '../hooks/useOnline';
 
 export default function Sandbox() {
   const [fen, setFen] = useState(DEFAULT_POSITION);
@@ -16,9 +17,11 @@ export default function Sandbox() {
   const [result, setResult] = useState(null);
   const [searchError, setSearchError] = useState('');
   const [searching, setSearching] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const online = useOnline();
   const request = useRef(null);
   const position = useMemo(() => inspectSandboxFen(fen), [fen]);
-  const engine = useStockfish(position.engineFen);
+  const engine = useStockfish(analyzing ? position.engineFen : null);
 
   useEffect(() => () => request.current?.abort(), []);
 
@@ -81,25 +84,31 @@ export default function Sandbox() {
             </label>
           </details>
           {position.error && <p role="status" className="text-sm text-red-700">{position.error} Matching games is unavailable until the position is valid.</p>}
-          <div className="max-w-xl">
+          <div className="sandbox-play-area max-w-xl">
             <Board fen={position.chess?.fen() ?? '8/8/8/8/8/8/8/8'} onMove={movePiece}
               interactive={!position.error} turnColor={position.chess?.turn() === 'b' ? 'black' : 'white'} viewOnly />
           </div>
           {moveError && <p role="status" className="text-sm text-red-700">{moveError}</p>}
-          <button type="button" onClick={search} disabled={!!position.error || searching}
+          <button type="button" onClick={search} disabled={!online || !!position.error || searching}
             className="ct-button">
             {searching ? 'Searching…' : 'Find matching games'}
           </button>
+          {!online && <p className="text-sm text-slate-500">Matching games requires a connection.</p>}
           {searchError && <p role="alert" className="text-sm text-red-700">{searchError}</p>}
           {result && <p role="status" className="text-sm">{result.matches.length} {result.matchType === 'exact' ? 'exact' : 'similar'} positions found.</p>}
         </section>
         <section className="space-y-3">
-          <div className="ct-panel"><MoveLedger moves={moves} /></div>
-          {position.engineFen ? <EnginePanel {...engine} fen={position.engineFen} />
-            : <p className="rounded bg-slate-100 p-4 text-sm">Stockfish needs a position it can analyze safely. Check the FEN and try again.</p>}
-          {position.error && position.engineFen && <p className="text-sm text-slate-600">Stockfish is analyzing with corrected position metadata.</p>}
+          <div className="ct-panel"><MoveLedger moves={moves} heading="h2" /></div>
+          <div className="ct-panel sandbox-analysis">
+            <button type="button" className="ct-quiet" aria-expanded={analyzing}
+              onClick={() => setAnalyzing(value => !value)}>{analyzing ? 'Stop analysis' : 'Start Stockfish analysis'}</button>
+            {!analyzing && <p className="text-sm text-slate-500">Complete one analysis online to use Stockfish offline.</p>}
+          </div>
+          {analyzing && (position.engineFen ? <EnginePanel {...engine} fen={position.engineFen} />
+            : <p className="rounded bg-slate-100 p-4 text-sm">Stockfish needs a position it can analyze safely. Check the FEN and try again.</p>)}
+          {analyzing && position.error && position.engineFen && <p className="text-sm text-slate-600">Stockfish is analyzing with corrected position metadata.</p>}
         </section>
-        {!position.error && <div className="sandbox-similar"><SimilarPositions key={position.fen} fen={position.fen} /></div>}
+        {online && !position.error && <div className="sandbox-similar"><SimilarPositions key={position.fen} fen={position.fen} /></div>}
       </div>
     </main>
   );

@@ -152,7 +152,7 @@ export default function Settings() {
   const displayFallback = user?.displayName || user?.email.split('@')[0];
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <main className="min-h-dvh bg-slate-50 p-4 sm:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold text-slate-900 mb-6">Settings</h1>
 
@@ -173,7 +173,7 @@ export default function Settings() {
               <h2 className="text-xl font-bold text-slate-900">{summary.displayName || summary.email.split('@')[0]}</h2>
               <p className="text-slate-500 text-sm mb-4">{summary.email}</p>
               
-              <div className="flex items-center gap-4 text-sm text-slate-600">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
                 <span className="font-medium bg-slate-100 px-3 py-1 rounded-md">
                   Member since {new Date(summary.memberSince).toLocaleDateString()}
                 </span>
@@ -295,6 +295,6 @@ export default function Settings() {
         </div>
 
       </div>
-    </div>
+    </main>
   );
 }

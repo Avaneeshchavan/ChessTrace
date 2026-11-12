@@ -26,6 +26,10 @@
   background-image: none;
 }
 
+.ct-board-surface[data-playable="true"] cg-board {
+  touch-action: none;
+}
+
 /* Coordinates outside the board */
 .cg-wrap coords {
   font-family: var(--ct-font-code);

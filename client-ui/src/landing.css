@@ -21,15 +21,15 @@
 .opening-replay { min-width: 0; scroll-margin-top: 1rem; border: 1px solid #5b4734; border-radius: 1rem; background: #211b16; box-shadow: 0 24px 65px #0b08068c; }
 .opening-replay-header { display: flex; align-items: center; gap: .8rem; padding: 1rem 1.2rem; border-bottom: 1px solid var(--ct-line); }
 .opening-replay-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; flex: none; border-radius: .6rem; background: #382a1e; color: var(--ct-accent); }
-.opening-replay-label { color: var(--ct-muted); font: .65rem/1.3 var(--ct-font-code); }
+.opening-replay-label { color: var(--ct-muted); font: .75rem/1.3 var(--ct-font-code); }
 .opening-replay-header h2 { font: 1.95rem/1 var(--ct-font-display); text-wrap: initial; }
-.opening-replay-date { margin-left: auto; color: var(--ct-muted); font: .7rem/1.4 var(--ct-font-code); text-align: right; }
+.opening-replay-date { margin-left: auto; color: var(--ct-muted); font: .75rem/1.4 var(--ct-font-code); text-align: right; }
 .opening-replay-body { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: stretch; gap: 1rem; padding: 1.1rem; }
 .opening-board { display: grid; align-content: center; gap: .55rem; }
 .opening-board [role="img"] { overflow: hidden; border: 1px solid #624a34; border-radius: .35rem; touch-action: pan-y; }
 .opening-board .ct-board-host { pointer-events: none; }
 .opening-board square.last-move { background: #e6ad5880; }
-.opening-player { display: flex; align-items: center; gap: .4rem; color: #d7c7b2; font-size: .7rem; }
+.opening-player { display: flex; align-items: center; gap: .4rem; color: #d7c7b2; font-size: .75rem; }
 .opening-color { flex: none; width: .65rem; height: .65rem; border: 1px solid #806b55; border-radius: 50%; background: #100e0b; }
 .opening-color-white { border-color: #e0c7a8; background: #ead9bf; }
 .opening-replay-details { display: grid; align-content: center; gap: .9rem; }

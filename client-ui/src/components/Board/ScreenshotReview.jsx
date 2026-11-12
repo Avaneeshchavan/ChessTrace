@@ -44,12 +44,8 @@ export function ScreenshotReview({ result, searching, onSearch, onEdit }) {
         <p role="status" className="text-sm font-medium">
           {flagged.length ? `${flagged.length} ${flagged.length === 1 ? 'square needs' : 'squares need'} review` : 'No squares left to review'}
         </p>
-        {!!flagged.length && <button type="button" className="ct-quiet" onClick={() => {
-          const next = (flagged.indexOf(selected) + 1) % flagged.length;
-          setSelected(flagged[next]);
-        }}>Review next square</button>}
       </div>
-      <div className="relative max-w-md mx-auto">
+      <div className="review-board relative max-w-md mx-auto">
         <Board fen={fen} orientation={orientation} interactive={false} viewOnly />
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8" aria-label="Editable chess squares">
           {display.map(key => {
@@ -122,6 +118,19 @@ export function ScreenshotReview({ result, searching, onSearch, onEdit }) {
         className="ct-button w-full">
         {searching ? 'Searching…' : 'Search this position'}
       </button>
+      {!!flagged.length && <div className="review-dock">
+        <button type="button" className="ct-quiet" onClick={() => {
+          const next = (flagged.indexOf(selected) + 1) % flagged.length;
+          setSelected(flagged[next]);
+          requestAnimationFrame(() => {
+            const field = document.getElementById('detected-piece');
+            if (field && field.getBoundingClientRect().bottom > window.innerHeight - 140) {
+              field.scrollIntoView({ block: 'center' });
+            }
+          });
+        }}>Review next square</button>
+        <span aria-live="polite" className="text-xs">{selected ? `Selected ${selected}` : `${flagged.length} to check`}</span>
+      </div>}
     </section>
   );
 }

@@ -92,7 +92,7 @@ export default function Dashboard() {
 
           {/* Heatmap */}
           <div className="bg-white rounded-xl p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 overflow-x-auto">
-            <h3 className="text-lg font-semibold tracking-tight text-slate-900 mb-6">Activity (Last 90 Days)</h3>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900 mb-6">Activity (Last 90 Days)</h2>
             <ActivityHeatmap data={heatmap} />
           </div>
 
@@ -100,7 +100,7 @@ export default function Dashboard() {
 
         {/* Right Column: Recent Activity Feed */}
         <div className="bg-white rounded-xl p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 flex flex-col h-full max-h-[800px]">
-          <h3 className="text-lg font-semibold tracking-tight text-slate-900 mb-6">Recent Activity</h3>
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900 mb-6">Recent Activity</h2>
           
           <div className="flex-1 overflow-y-auto pr-2">
             {!recentActivity || recentActivity.length === 0 ? (

@@ -41,7 +41,9 @@ export default function Auth() {
     try {
       if (isLogin) await login(email.trim(), password);
       else await register(email.trim(), password, displayName.trim());
-      const destination = ['/sandbox', '/vault'].includes(state?.returnTo) ? state.returnTo : '/dashboard';
+      const returnTo = state?.returnTo;
+      const allowed = ['/sandbox', '/vault'].includes(returnTo) || /^\/lens\?share=(?:[a-f\d-]{36}|invalid)$/i.test(returnTo ?? '');
+      const destination = allowed ? returnTo : '/dashboard';
       navigate(destination, { replace: true });
     } catch (err) {
       if (err instanceof ServiceRequestInterruptedError) {

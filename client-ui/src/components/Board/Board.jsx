@@ -22,8 +22,15 @@ export function Board({
 }) {
   const wrapRef = useRef(null);
   const cgRef = useRef(null);
+  const touchMove = useRef(false);
   const latest = useRef({ fen, onMove });
   useEffect(() => { latest.current = { fen, onMove }; }, [fen, onMove]);
+
+  function startInteraction(event) {
+    touchMove.current = event.type === 'touchstart' || event.pointerType === 'touch';
+    // A health banner or another sibling can shift the board without resizing it.
+    cgRef.current?.state.dom.bounds.clear();
+  }
 
   useEffect(() => {
     cgRef.current = Chessground(wrapRef.current, {
@@ -40,11 +47,16 @@ export function Board({
             const placement = cgRef.current?.getFen();
             if (latest.current.onMove?.(orig, dest, placement) === false) {
               cgRef.current?.set({ fen: latest.current.fen, lastMove: [] });
+            } else if (latest.current.onMove && touchMove.current &&
+              !window.matchMedia('(prefers-reduced-motion: reduce)').matches && typeof navigator.vibrate === 'function') {
+              navigator.vibrate(12);
             }
           },
         },
       },
       draggable: { enabled: interactive },
+      selectable: { enabled: interactive },
+      blockTouchScroll: interactive,
       drawable: {
         enabled: true,
         visible: true,
@@ -64,6 +76,8 @@ export function Board({
       ...(lastMove === undefined ? {} : { lastMove }),
       movable: { free: interactive, color: interactive ? 'both' : undefined },
       draggable: { enabled: interactive },
+      selectable: { enabled: interactive },
+      blockTouchScroll: interactive,
     });
   }, [fen, lastMove, orientation, turnColor, interactive]);
 
@@ -82,7 +96,8 @@ export function Board({
 
   if (viewOnly) {
     return (
-      <div className="ct-board-surface relative w-full aspect-square overflow-hidden">
+      <div className="ct-board-surface relative w-full aspect-square overflow-hidden" data-playable={interactive}
+        onTouchStartCapture={startInteraction} onPointerDownCapture={startInteraction}>
         <div className="ct-board-host" ref={wrapRef} />
       </div>
     );
@@ -90,7 +105,8 @@ export function Board({
 
   return (
     <div className="ct-board-frame relative p-4 pl-6 pb-6 w-full max-w-[600px]">
-      <div className="ct-board-surface aspect-square relative" ref={wrapRef} />
+      <div className="ct-board-surface aspect-square relative" data-playable={interactive} ref={wrapRef}
+        onTouchStartCapture={startInteraction} onPointerDownCapture={startInteraction} />
     </div>
   );
 }

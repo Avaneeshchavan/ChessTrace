@@ -122,12 +122,12 @@ export default function PatternVault() {
   });
 
   return (
-    <div className="p-8">
+    <main className="p-4 sm:p-8">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900 mb-6">Pattern Vault</h1>
 
       {/* Review Banner */}
       {reviewCount > 0 && (
-        <div className="bg-[var(--ct-accent)]/10 border border-[var(--ct-accent)]/30 rounded-xl p-6 mb-8 flex items-center justify-between shadow-sm">
+        <div className="bg-[var(--ct-accent)]/10 border border-[var(--ct-accent)]/30 rounded-xl p-4 sm:p-6 mb-8 flex flex-wrap items-center justify-between gap-3 shadow-sm">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Spaced Repetition Review</h2>
             <p className="text-slate-600 text-sm mt-1">You have {reviewCount} puzzle{reviewCount !== 1 ? 's' : ''} queued for review.</p>
@@ -142,19 +142,21 @@ export default function PatternVault() {
         : !loading && !error && <SolveRate weeks={weeks} />}
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-4 mb-8 flex gap-4 items-center">
-        <Filter size={16} className="text-slate-400" />
+      {!loading && !error && status === 'awake' && (
+        <div className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-4 mb-8 flex gap-4 items-center">
+          <Filter size={16} className="text-slate-400" />
 
-        <select 
-          value={selectedMotif}
-          onChange={(e) => setSelectedMotif(e.target.value)}
-          className="px-3 py-2 text-sm ring-1 ring-slate-900/5 rounded-lg text-slate-900 bg-slate-50 hover:bg-white outline-none transition focus:ring-2 focus:ring-[var(--ct-accent)]"
-        >
-          {motifs.map((m) => (
-            <option key={m}>{m}</option>
-          ))}
-        </select>
-      </div>
+          <select aria-label="Filter by motif"
+            value={selectedMotif}
+            onChange={(e) => setSelectedMotif(e.target.value)}
+            className="px-3 py-2 text-sm ring-1 ring-slate-900/5 rounded-lg text-slate-900 bg-slate-50 hover:bg-white outline-none transition focus:ring-2 focus:ring-[var(--ct-accent)]"
+          >
+            {motifs.map((m) => (
+              <option key={m}>{m}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {status === 'waking' || status === 'checking' ? (
         <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
@@ -175,7 +177,7 @@ export default function PatternVault() {
           {filteredPuzzles.map((puzzle) => (
             <div key={puzzle.id} className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-shadow flex flex-col">
               <div className="w-full aspect-square overflow-hidden">
-                <Board fen={puzzle.fen} viewOnly orientation="white" />
+                <Board fen={puzzle.fen} viewOnly interactive={false} orientation="white" />
               </div>
               <div className="p-4 flex-1 flex flex-col">
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -200,13 +202,13 @@ export default function PatternVault() {
                   <div className="text-xs font-semibold px-2 py-1 rounded w-fit bg-[var(--ct-accent)] text-white mb-2">
                     {new Date(puzzle.nextReviewAt) <= new Date() ? 'Due now' : `Due ${new Date(puzzle.nextReviewAt).toLocaleDateString()}`}
                   </div>
-                  <div className="text-[10px] text-slate-400">Added {new Date(puzzle.createdAt).toLocaleDateString()}</div>
+                  <div className="text-xs text-slate-400">Added {new Date(puzzle.createdAt).toLocaleDateString()}</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </main>
   );
 }
