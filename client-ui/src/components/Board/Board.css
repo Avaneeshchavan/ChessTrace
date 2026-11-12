@@ -60,6 +60,9 @@ square.move-dest {
   background: radial-gradient(#211d1860 22%, transparent 24%) !important;
 }
 
+cg-board square.ct-hint-piece { box-shadow: inset 0 0 0 4px #ffd085; }
+cg-board square.ct-hint-destination { box-shadow: inset 0 0 0 4px #e4ec9d; }
+
 /* Low-confidence squares from Phase 2 — dashed red outline */
 square.ct-lowconf::after {
   content: '';

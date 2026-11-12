@@ -274,3 +274,26 @@
 @media (min-width: 480px) and (max-width: 767px) {
   .review-board { margin-inline: auto; }
 }
+
+.puzzle-review-header {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: .9rem;
+  margin-bottom: 1.4rem;
+}
+.puzzle-play {
+  display: grid;
+  grid-template-columns: minmax(0, 33rem) minmax(0, 25rem);
+  align-items: start;
+  gap: 1.25rem;
+}
+.puzzle-board { max-width: 33rem; }
+.puzzle-controls { display: grid; justify-items: start; gap: .9rem; padding: 1rem; }
+.puzzle-controls > div { width: 100%; }
+.puzzle-ratings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.vault-solve-rates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+@media (max-width: 767px) {
+  .puzzle-play, .vault-solve-rates { grid-template-columns: minmax(0, 1fr); }
+  .puzzle-board { margin-inline: -.75rem; }
+}

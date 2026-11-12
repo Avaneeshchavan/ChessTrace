@@ -110,7 +110,8 @@ export default function TurningPoints() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          fen: puzzle.fenBefore, initialMove: puzzle.san, solutionPgn: puzzle.solutionPgn, tags: tags[puzzle.index] ?? ['Blunder'],
+          fen: puzzle.fenBefore, initialMove: puzzle.san, solutionPgn: puzzle.solutionPgn,
+          mateIn: puzzle.mateIn, tags: tags[puzzle.index] ?? ['Blunder'],
         }),
       });
       if (!response.ok) throw new Error('Could not save the puzzle.');

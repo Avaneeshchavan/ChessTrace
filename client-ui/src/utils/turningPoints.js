@@ -33,6 +33,7 @@ export function findTurningPoints(history, analyses) {
       fenBefore: move.before,
       bestSan: best.san,
       solutionPgn: solution.pgn(),
+      mateIn: before.evaluation.type === 'mate' && before.evaluation.value > 0 ? before.evaluation.value : null,
       loss: beforeScore - afterScore,
       mateSwing: before.evaluation.type === 'mate' || after.evaluation.type === 'mate',
     });

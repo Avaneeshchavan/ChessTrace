@@ -1,5 +1,5 @@
 import { fetchService } from '../config/serviceRequest';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { Link } from 'react-router-dom';
 import { Filter, Loader2, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -8,15 +8,16 @@ import { API_BASE_URL } from '../config/api';
 import { MotifPicker } from '../components/Vault/MotifPicker';
 import { useServiceHealth } from '../hooks/useServiceHealth';
 
-function SolveRate({ weeks }) {
+function SolveRate({ weeks, title, detail, empty }) {
+  const heading = useId();
   const motifs = [...new Set(weeks.map(week => week.motif))].sort();
   const [filter, setFilter] = useState('');
   const motif = motifs.includes(filter) ? filter : motifs[0];
   const rows = weeks.filter(week => week.motif === motif);
   return (
-    <section className="mb-6 space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
-      <h2 className="font-semibold">Reported solve rate by motif</h2>
-      <p className="text-xs text-slate-600">Last 90 days, grouped by UTC week. Hard, Good and Easy count as solved.</p>
+    <section className="min-w-0 space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200" aria-labelledby={heading}>
+      <h2 className="font-semibold" id={heading}>{title}</h2>
+      <p className="text-xs text-slate-600">{detail}</p>
       {rows.length ? <>
         <label className="text-sm">Motif{' '}
           <select value={motif} onChange={event => setFilter(event.target.value)} className="rounded border p-1">
@@ -34,7 +35,7 @@ function SolveRate({ weeks }) {
             </li>
           ))}
         </ul>
-      </> : <p className="text-sm text-slate-500">Review a tagged puzzle to see your progress here.</p>}
+      </> : <p className="text-sm text-slate-500">{empty}</p>}
     </section>
   );
 }
@@ -44,6 +45,7 @@ export default function PatternVault() {
   const [puzzles, setPuzzles] = useState([]);
   const [reviewCount, setReviewCount] = useState(0);
   const [weeks, setWeeks] = useState([]);
+  const [attemptWeeks, setAttemptWeeks] = useState([]);
   const [statsError, setStatsError] = useState('');
   const [edit, setEdit] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -73,7 +75,9 @@ export default function PatternVault() {
         const vaultData = await vaultRes.json();
         setPuzzles(vaultData.puzzles);
         if (statsRes?.ok) {
-          setWeeks((await statsRes.json()).weeks);
+          const stats = await statsRes.json();
+          setWeeks(stats.weeks ?? []);
+          setAttemptWeeks(stats.attemptWeeks ?? []);
           setStatsError('');
         } else {
           setStatsError('Could not load review history.');
@@ -139,7 +143,16 @@ export default function PatternVault() {
       )}
 
       {statsError ? <p role="status" className="mb-4 text-sm text-red-700">{statsError}</p>
-        : !loading && !error && <SolveRate weeks={weeks} />}
+        : !loading && !error && (
+          <div className="vault-solve-rates">
+            <SolveRate weeks={attemptWeeks} title="Move-based solve rate by motif"
+              detail="Last 90 days by UTC week. Includes correct moves played with a hint."
+              empty="Play a move in a tagged puzzle to see your results." />
+            <SolveRate weeks={weeks} title="Self-rated solve rate by motif"
+              detail="Last 90 days by UTC week. Hard, Good and Easy count as solved."
+              empty="Rate a tagged puzzle to see your results." />
+          </div>
+        )}
 
       {/* Filter Bar */}
       {!loading && !error && status === 'awake' && (

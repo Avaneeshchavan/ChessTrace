@@ -163,7 +163,7 @@ async function verifyOffline(browser) {
   assert.equal(await page.evaluate(() => window.scrollY), scrollBefore, 'Touch drag scrolled the page');
   await page.getByRole('button', { name: 'Start Stockfish analysis' }).tap();
   await page.waitForFunction(() => document.querySelector('.engine-panel')?.innerText.includes('14 / 14'));
-  assert.ok(engineRequests.some(url => url.endsWith('/stockfish-worker.js')), 'Expected the Stockfish worker request');
+  assert.ok(engineRequests.some(url => url.endsWith('/stockfish.wasm.js')), 'Expected the Stockfish worker request');
 
   await page.evaluate(async () => {
     await fetch('/api/dashboard/summary');
@@ -171,7 +171,7 @@ async function verifyOffline(browser) {
     const all = (await Promise.all(keys.map(async key => (await caches.open(key)).keys()))).flat();
     if (all.some(request => new URL(request.url).pathname.startsWith('/api/'))) throw new Error('An API response entered the offline cache.');
     const paths = new Set(all.map(request => new URL(request.url).pathname));
-    for (const path of ['/stockfish/stockfish-worker.js', '/stockfish/stockfish.js']) {
+    for (const path of ['/stockfish/stockfish.wasm.js', '/stockfish/stockfish.wasm']) {
       if (!paths.has(path)) throw new Error('Stockfish asset was not cached: ' + path);
     }
   });

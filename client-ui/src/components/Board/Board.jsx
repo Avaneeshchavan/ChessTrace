@@ -17,6 +17,8 @@ export function Board({
   turnColor = 'white',
   onMove,
   lowConfidenceSquares = [],
+  destinations,
+  hints,
   interactive = true,
   viewOnly = false,
 }) {
@@ -25,6 +27,7 @@ export function Board({
   const touchMove = useRef(false);
   const latest = useRef({ fen, onMove });
   useEffect(() => { latest.current = { fen, onMove }; }, [fen, onMove]);
+  const movableColor = interactive ? (destinations ? turnColor : 'both') : undefined;
 
   function startInteraction(event) {
     touchMove.current = event.type === 'touchstart' || event.pointerType === 'touch';
@@ -40,8 +43,9 @@ export function Board({
       turnColor,
       animation: { enabled: !window.matchMedia('(prefers-reduced-motion: reduce)').matches, duration: 240 },
       movable: {
-        free: interactive,
-        color: interactive ? 'both' : undefined,
+        free: interactive && !destinations,
+        color: movableColor,
+        dests: destinations,
         events: {
           after: (orig, dest) => {
             const placement = cgRef.current?.getFen();
@@ -74,12 +78,12 @@ export function Board({
     cgRef.current?.set({
       fen, orientation, turnColor,
       ...(lastMove === undefined ? {} : { lastMove }),
-      movable: { free: interactive, color: interactive ? 'both' : undefined },
+      movable: { free: interactive && !destinations, color: movableColor, dests: destinations },
       draggable: { enabled: interactive },
       selectable: { enabled: interactive },
       blockTouchScroll: interactive,
     });
-  }, [fen, lastMove, orientation, turnColor, interactive]);
+  }, [fen, lastMove, orientation, turnColor, interactive, movableColor, destinations]);
 
   // Mark low-confidence squares directly on the board (dashed red
   // outline via Board.css's `.ct-lowconf`).
@@ -89,10 +93,13 @@ export function Board({
     boardEl.querySelectorAll('square.ct-lowconf').forEach((el) => el.classList.remove('ct-lowconf'));
     cgRef.current?.set({
       highlight: {
-        custom: new Map(lowConfidenceSquares.map((sq) => [sq, 'ct-lowconf'])),
+        custom: new Map([
+          ...lowConfidenceSquares.map(sq => [sq, 'ct-lowconf']),
+          ...(hints ?? []).map((sq, index) => [sq, index === 0 ? 'ct-hint-piece' : 'ct-hint-destination']),
+        ]),
       },
     });
-  }, [lowConfidenceSquares]);
+  }, [lowConfidenceSquares, hints]);
 
   if (viewOnly) {
     return (
