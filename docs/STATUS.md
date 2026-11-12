@@ -68,3 +68,9 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 - Mobile navigation uses bottom tabs, and Origin Lens includes a camera entry and a pinned next-square control. Sandbox supports touch drag, tap-to-move, and on-demand Stockfish analysis.
 - The installable app caches built app files and Stockfish assets for offline study. The app can receive gallery shares through an installed Android Chrome app. The production deployment was outside this verification.
 - [M5 verification and evidence](m5/README.md) records the viewport audit, Playwright workflows, Lighthouse scores, and device checks still pending.
+
+## M6 play the turning point
+
+- Due Vault puzzles support legal moves, two hints, promotion selection, and reveal. The browser WASM worker checks alternate moves. Rating suggestions use the existing SM-2 endpoint.
+- The additive Attempt migration supports retry-safe recording and weekly move-based solve rates by motif. The production Neon migration is pending.
+- [M6 verification](m6/README.md) records local API and browser results, screenshots, and the saved alternate-move evidence.
