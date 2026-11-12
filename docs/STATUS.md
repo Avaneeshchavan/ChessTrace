@@ -62,3 +62,9 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 - Origin Lens supports keyboard upload, piece correction, castling edits, distinct game results, and direct replay. The live browser check found the Anand–Bareev position and opened its stored game.
 - The production landing page scored 98 performance and 100 accessibility, best practices, and SEO in mobile Lighthouse. Chrome checked 390px navigation and board resizing with reduced motion enabled.
 - [UI captures and critique](ui/README.md) show the desktop and mobile states and document Astra’s ten ranked findings and the five applied changes.
+
+## M5 mobile and offline study
+
+- Mobile navigation uses bottom tabs, and Origin Lens includes a camera entry and a pinned next-square control. Sandbox supports touch drag, tap-to-move, and on-demand Stockfish analysis.
+- The installable app caches built app files and Stockfish assets for offline study. The app can receive gallery shares through an installed Android Chrome app. The production deployment was outside this verification.
+- [M5 verification and evidence](m5/README.md) records the viewport audit, Playwright workflows, Lighthouse scores, and device checks still pending.

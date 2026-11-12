@@ -1,0 +1,66 @@
+[
+  {
+    "route": "/",
+    "performance": 87,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100,
+    "agentic-browsing": 100
+  },
+  {
+    "route": "/dashboard",
+    "performance": 87,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 63,
+    "agentic-browsing": 100
+  },
+  {
+    "route": "/lens",
+    "performance": 88,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 63,
+    "agentic-browsing": 100
+  },
+  {
+    "route": "/sandbox",
+    "performance": 88,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 63,
+    "agentic-browsing": 100
+  },
+  {
+    "route": "/turning-points",
+    "performance": 88,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 63,
+    "agentic-browsing": 100
+  },
+  {
+    "route": "/vault",
+    "performance": 76,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 63,
+    "agentic-browsing": 78
+  },
+  {
+    "route": "/vault/review",
+    "performance": 87,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 63,
+    "agentic-browsing": 100
+  },
+  {
+    "route": "/settings",
+    "performance": 87,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 63,
+    "agentic-browsing": 99
+  }
+]
