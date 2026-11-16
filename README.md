@@ -2,14 +2,19 @@
 
 ChessTrace is a chess study app that connects a position on your screen to games you can replay. Upload a board screenshot, correct the detected pieces and game state, then search for the same position or a structurally similar one. Open a match at the relevant move to see how the game continued.
 
-![Origin Lens showing a reconstructed board and matching games](client-ui/public/product/origin-lens.webp)
+[Open ChessTrace](https://chesstrace.vercel.app) · [Sprint status](docs/STATUS.md)
+
+![ChessTrace home page with the interactive Opera Game preview](docs/m8/screenshots/1280-landing.webp)
+
+[Mobile landing capture](docs/m8/screenshots/390-landing.webp) · [Guided sample capture](docs/m8/screenshots/390-guided-sample.webp)
 
 ## What you can do
 
 - **Origin Lens** reconstructs a board from a screenshot and flags squares that need review. You can correct pieces, orientation, side to move, and castling rights before searching.
 - **Sandbox** lets you play legal moves from a FEN, analyze the position with Stockfish, and find similar positions. Filter results by opening or decade and replay a matched game from its matching move.
 - **Turning Points** accepts a Lichess game link, a completed Chess.com game, or pasted PGN. It analyzes the moves in a browser worker and surfaces up to three of the largest evaluation drops as puzzles.
-- **Pattern Vault** saves puzzles with multiple motif tags, schedules reviews using SM-2, and charts weekly self-reported solve rates.
+- **Twin Game** compares your opening with the corpus and replays the closest match from the shared position.
+- **Pattern Vault** saves puzzles with motif tags. Play moves, use hints, and review with an overridable SM-2 rating. The Vault charts move-based and self-rated solve rates.
 
 ## Stack and architecture
 
@@ -22,14 +27,24 @@ ChessTrace is a chess study app that connects a position on your screen to games
 
 ```mermaid
 flowchart LR
-    Client["React client"] -->|Screenshot| Vision["FastAPI vision service"]
+    Client["React client · Vercel"] -->|Screenshot| Vision["FastAPI vision service · Render"]
     Vision -->|Detected board and review flags| Client
-    Client -->|Reviewed position, games, and puzzles| API["Express API"]
+    Client -->|Reviewed position, games, and puzzles| API["Express API · Vercel"]
     API -->|Prisma and vector queries| DB[("Neon PostgreSQL and pgvector")]
     Client <-->|In-browser analysis| Engine["Stockfish WASM worker"]
 ```
 
 Exact search looks up the first three FEN fields: piece placement, side to move, and castling rights. Similarity search compares 32-dimensional structural vectors using L2 distance and an HNSW index. Stored PGNs and half-move numbers let the client replay each match in context.
+
+## Corpus and hosting
+
+The read-only corpus report on **November 17, 2026** measured **777 broadcast games**, **34,822 distinct compact positions**, and **33,037 vector-indexed positions** on the connected Neon database. The active storage profile retains a limited set of replay links per position. See the [corpus sources and licenses](data/SOURCES.md).
+
+| Service | Free-tier allowance used by ChessTrace |
+| --- | --- |
+| Neon Free database | “1 GB of storage per project” and “100 CU-hours of compute per project per month.” [Neon Free](https://neon.com/blog/neon-free-plan-1-gb-per-project) |
+| Vercel Hobby client and API | “4 hours included” of active CPU, “360 GB-hrs included” of provisioned memory, and “1 million included” function invocations per month. [Vercel Functions pricing](https://vercel.com/docs/functions/usage-and-pricing) |
+| Render Free image scanner | “750 Free instance hours to each workspace per calendar month.” A service spins down after “15 minutes without receiving any inbound traffic.” The scanner can take time to respond on the first upload. [Render limits](https://render.com/docs/free) |
 
 ## Run locally
 
@@ -73,7 +88,7 @@ Use Node.js 22.12 or newer, Python with virtual environment support, and a Postg
 | --- | --- |
 | Search benchmark | On a temporary Neon corpus of 1,000 games and 79,855 positions, PostgreSQL execution p95 was **0.500 ms exact** and **0.449 ms approximate** across 1,000 lookups. These timings exclude the network and API. |
 | Board recognition | On 108 synthetic boards, the detector reached **99.71% per-square accuracy** and **90.74% exact piece placement**. Real screenshot accuracy has yet to be measured. |
-| Landing page | Mobile Lighthouse on the local production build scored **98 performance** and **100 accessibility, best practices, and SEO**. |
+| Landing and Settings | See the [M8 Lighthouse results](docs/m8/README.md) for the current local build and test scope. |
 
 Run `npm test` in `api-server/`, `npm run build` in `client-ui/`, and `python tests/test_pipeline.py` plus `python tests/test_detect.py` in `vision-engine/`.
 

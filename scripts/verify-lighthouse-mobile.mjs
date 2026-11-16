@@ -10,9 +10,10 @@ const load = name => import(pathToFileURL(require.resolve(name)).href);
 const { default: lighthouse } = await load(process.env.LIGHTHOUSE_PACKAGE || 'lighthouse');
 const { launch } = await load(process.env.CHROME_LAUNCHER_PACKAGE || 'chrome-launcher');
 const directory = resolve(process.env.MOBILE_EVIDENCE || '/tmp/chesstrace-m5-evidence');
-const fixture = await startMobileFixture();
+const fixture = await startMobileFixture({ visionPort: process.env.LIGHTHOUSE_SKIP_VISION ? 0 : 8000 });
 const scores = [];
-const routes = ['/', '/dashboard', '/lens', '/sandbox', '/turning-points', '/vault', '/vault/review', '/settings'];
+const routes = process.env.LIGHTHOUSE_ROUTES?.split(',') ||
+  ['/', '/dashboard', '/lens', '/sandbox', '/turning-points', '/vault', '/vault/review', '/settings'];
 
 try {
   await mkdir(directory, { recursive: true });

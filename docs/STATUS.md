@@ -88,3 +88,9 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 | M6 | Implemented and verified locally. The Neon migration log still lacked `0005_puzzle_attempts` during the M7 read-only check. |
 | M7 | Twin Game implemented and verified locally at 390px and 1280px. The final batched query was measured on both live Neon layouts. [M7 evidence](m7/README.md). |
 | M8 and M9 | Remaining sprint prompts. |
+
+## M8 product polish
+
+- Implemented the guest guided sample, count-aware search results, shared offline states, keyboard board controls, About and Privacy pages, and password-confirmed account deletion.
+- Verified against a disposable database, the local image scanner, and Chromium at 390px and 1280px. The sample's exact corpus matches and first replay were separately verified on Neon using read-only queries.
+- [M8 verification](m8/README.md) records browser evidence, corpus size, Lighthouse, and the synthetic evaluation. Real screenshot accuracy is not measured because the private labeled dataset is missing. Production rollout and M9 are pending.

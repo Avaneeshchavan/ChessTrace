@@ -10,6 +10,7 @@ VISION = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(VISION))
 from app.main import detect_bytes
 from app.pipeline.sprite_matching import SPRITE_THEMES, premultiplied, read_sprite
+from fastapi import HTTPException
 import chess
 import cv2
 import numpy as np
@@ -85,13 +86,24 @@ def evaluate(cases):
     errors = Counter()
     for label, board, data, orientation in cases:
         expected = {chess.square_name(key): piece.symbol() for key, piece in board.piece_map().items()}
-        result = detect_bytes(data, manual_orientation=orientation)
+        try:
+            result = detect_bytes(data, manual_orientation=orientation)
+        except HTTPException:
+            stats = Counter(boards=1, failed=1)
+            for square in chess.SQUARE_NAMES:
+                target = expected.get(square, ".")
+                stats[f"total:{target}"] += 1
+                errors[(target, "no prediction")] += 1
+            groups[label].update(stats)
+            continue
         stats = Counter(boards=1, placements=int(result.piece_placement_field == board.board_fen()),
                         full=int(result.fen == board.fen(en_passant="fen")), valid=int(result.fen_valid))
         for square in result.squares:
             symbol = square.piece
             actual = (symbol[1] if symbol[0] == "w" else symbol[1].lower()) if symbol else "."
             target = expected.get(square.square, ".")
+            stats[f"total:{target}"] += 1
+            stats[f"correct:{target}"] += int(actual == target)
             stats["correct"] += int(actual == target)
             stats["flagged"] += int(square.needs_review)
             if actual != target:
@@ -125,14 +137,26 @@ def report(groups, errors, synthetic):
     lines += [
         "", "Per-square includes empty squares. Exact placement compares all 64 squares. Exact full FEN compares all six fields to the true game state; a still image cannot recover clocks, en passant, the turn, or historical castling rights.",
         f"Review flags marked {total['flagged']} squares and covered {total['flagged_errors']} of {sum(errors.values())} wrong squares.",
-        "", "Top confusions (uppercase White, lowercase Black, dot means empty):", "",
+        f"Review-flag coverage was {pct(total['flagged_errors'], sum(errors.values()))}. "
+        f"Decoded boards needed {sum(n for (_, actual), n in errors.items() if actual != 'no prediction')} square corrections. "
+        f"{total['failed']} boards produced no prediction and require a new scan or manual entry.",
+        "", "Per-piece accuracy (uppercase White, lowercase Black, dot means empty). Scan failures count as misses.", "",
+        "| Expected | Squares | Correct | Accuracy |", "| --- | ---: | ---: | ---: |",
+    ]
+    for symbol in "KQRBNPkqrbnp.":
+        n, correct = total[f"total:{symbol}"], total[f"correct:{symbol}"]
+        lines.append(f"| {symbol} | {n} | {correct} | {pct(correct, n)} |")
+    lines += [
+        "", "Top confusions:", "",
         "| Expected | Predicted | Count |", "| --- | --- | ---: |",
     ]
     lines.extend(f"| {a} | {b} | {n} |" for (a, b), n in errors.most_common(10))
     if not errors:
         lines.append("| — | — | 0 |")
-    lines += ["", "Reproduce from vision-engine/:", "",
-              "    python tests/eval/evaluate.py --output ../docs/VISION_EVAL.md", ""]
+    command = "python tests/eval/evaluate.py"
+    if not synthetic:
+        command += " --manifest tests/eval/manifest.csv --images tests/eval/images"
+    lines += ["", "Reproduce from vision-engine/:", "", f"    {command}", ""]
     return "\n".join(lines)
 
 
@@ -145,6 +169,8 @@ def main():
     args = parser.parse_args()
     if args.per_size < 1:
         parser.error("--per-size must be positive")
+    if args.manifest and (not args.manifest.is_file() or not args.images.is_dir()):
+        parser.error("Real evaluation requires an existing CSV manifest and image directory.")
     cv2.setNumThreads(1)
     cases = real_cases(args.manifest, args.images) if args.manifest else synthetic_cases(args.per_size)
     groups, errors = evaluate(cases)

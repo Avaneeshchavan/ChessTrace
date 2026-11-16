@@ -27,7 +27,7 @@ function start(port, handler) {
   });
 }
 
-export async function startMobileFixture({ dist = 'client-ui/dist', baseline, apiPort = 5001, visionPort = 8000 } = {}) {
+export async function startMobileFixture({ dist = 'client-ui/dist', baseline, apiPort = 5001, visionPort = 8000, frontendPort = 0 } = {}) {
   const requests = [];
   let updatedWorker = false;
   async function api(req, res) {
@@ -87,7 +87,7 @@ export async function startMobileFixture({ dist = 'client-ui/dist', baseline, ap
   try {
     if (apiPort) servers.push(await start(apiPort, api));
     if (visionPort && visionPort !== apiPort) servers.push(await start(visionPort, api));
-    servers.push(await start(0, staticFiles(dist)));
+    servers.push(await start(frontendPort, staticFiles(dist)));
     if (baseline) servers.push(await start(0, staticFiles(baseline)));
   } catch (error) {
     servers.forEach(server => server.close());
