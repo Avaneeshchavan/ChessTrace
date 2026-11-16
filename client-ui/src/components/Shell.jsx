@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Ellipsis, Eye, Grid3x3, Home, LogOut, Menu, Settings, TrendingUp, UserRound, X, Zap } from 'lucide-react';
+import { Ellipsis, Eye, GitCompare, Grid3x3, Home, LogOut, Menu, Settings, TrendingUp, UserRound, X, Zap } from 'lucide-react';
 import ChessTraceLogo from './ChessTraceLogo';
 import { useAuth } from '../context/AuthContext';
 import ServiceHealthBanner from './ServiceHealthBanner';
@@ -12,6 +12,7 @@ const navItems = [
   ['/lens', 'Origin Lens', Eye],
   ['/sandbox', 'Sandbox', Zap],
   ['/turning-points', 'Turning Points', TrendingUp],
+  ['/twin-game', 'Twin Game', GitCompare],
   ['/vault', 'Pattern Vault', Grid3x3],
   ['/settings', 'Settings', Settings],
 ];
@@ -80,7 +81,7 @@ export function Shell() {
             <button type="button" className="study-sheet-close" onClick={closeSheet} aria-label="Close more menu"><X size={22} /></button>
           </header>
           <nav className="study-nav" aria-label="More study pages">
-            {navItems.filter(([to]) => to === '/dashboard' || to === '/turning-points').map(([to, label, Icon]) => (
+            {navItems.filter(([to]) => !mobileItems.some(([tab]) => tab === to)).map(([to, label, Icon]) => (
               <NavLink key={to} to={to} onClick={closeSheet}><Icon size={18} aria-hidden="true" />{label}</NavLink>
             ))}
           </nav>

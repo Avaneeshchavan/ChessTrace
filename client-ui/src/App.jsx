@@ -11,6 +11,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const OriginLens = lazy(() => import('./pages/OriginLens'));
 const Sandbox = lazy(() => import('./pages/Sandbox'));
 const TurningPoints = lazy(() => import('./pages/TurningPoints'));
+const TwinGame = lazy(() => import('./pages/TwinGame'));
 const PatternVault = lazy(() => import('./pages/PatternVault'));
 const VaultReview = lazy(() => import('./pages/VaultReview'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="/lens" element={<OriginLens />} />
               <Route path="/sandbox" element={<Sandbox />} />
               <Route path="/turning-points" element={<TurningPoints />} />
+              <Route path="/twin-game" element={<TwinGame />} />
               <Route path="/vault" element={<PatternVault />} />
               <Route path="/vault/review" element={<VaultReview />} />
               <Route path="/settings" element={<Settings />} />

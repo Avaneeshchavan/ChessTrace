@@ -297,3 +297,39 @@
   .puzzle-play, .vault-solve-rates { grid-template-columns: minmax(0, 1fr); }
   .puzzle-board { margin-inline: -.75rem; }
 }
+
+.twin-form { margin-bottom: 1rem; }
+.twin-panel { display: grid; gap: .7rem; justify-items: start; padding: 1rem; min-width: 0; width: 100%; }
+.twin-form > label, .twin-timeline { width: 100%; }
+.twin-panel h2 { font: 1.8rem/1.05 var(--ct-font-display); }
+.twin-panel p { font-size: .875rem; overflow-wrap: anywhere; }
+.twin-panel p:not(.twin-move) { color: var(--ct-muted); }
+.twin-panel > section { width: 100%; }
+.twin-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.twin-panel .twin-move { font: 1.65rem/1 var(--ct-font-display); color: var(--ct-accent); }
+.twin-timeline {
+  display: flex;
+  gap: .45rem;
+  overflow: auto;
+  padding: .35rem .15rem .65rem;
+  max-height: 11rem;
+}
+.twin-timeline li {
+  flex: 0 0 6rem;
+  display: grid;
+  align-content: start;
+  gap: .25rem;
+  border-top: 2px solid var(--ct-line);
+  background: var(--ct-field);
+  padding: .5rem;
+  border-radius: .3rem;
+  font-size: .75rem;
+}
+.twin-timeline li[data-matched="true"] { border-color: var(--ct-success); }
+.twin-timeline li[data-departure="true"] { border-color: var(--ct-accent); background: var(--ct-raised); }
+.twin-departure { color: var(--ct-accent); font-weight: 650; }
+@media (max-width: 767px) {
+  .twin-timeline { display: grid; max-height: 18rem; }
+  .twin-timeline li { border-top: 0; border-inline-start: 2px solid var(--ct-line); }
+  .twin-compare { grid-template-columns: minmax(0, 1fr); }
+}

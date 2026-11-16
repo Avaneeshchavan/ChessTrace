@@ -20,7 +20,7 @@ export function GameReplay({ match }) {
         const chess = new Chess();
         chess.loadPgn(pgn);
         const moves = chess.history({ verbose: true });
-        if (!moves.length || match.halfMove > moves.length || match.halfMove < 1) {
+        if (!moves.length || match.halfMove > moves.length || match.halfMove < 0) {
           throw new Error('The matching move is unavailable in the stored game.');
         }
         if (!controller.signal.aborted) {

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Chess } from 'chess.js';
 import { MotifPicker } from '../components/Vault/MotifPicker';
 import { Board } from '../components/Board/Board';
+import { GameInput } from '../components/Game/GameInput';
+import { importGame } from '../utils/importGame';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
 import { createStockfishClient } from '../hooks/stockfishClient';
@@ -43,7 +45,6 @@ export default function TurningPoints() {
   const [saved, setSaved] = useState([]);
   const [tags, setTags] = useState({});
   const active = useRef(null);
-  const isChessCom = /^https:\/\/(www\.)?chess\.com\//i.test(input.trim());
 
   useEffect(() => () => active.current?.abort(), []);
 
@@ -59,19 +60,7 @@ export default function TurningPoints() {
     setTags({});
     setProgress({ done: 0, total: 0 });
     try {
-      let pgn = input.trim();
-      if (!pgn || /^https?:\/\//i.test(pgn)) {
-        const response = await fetchService(API_BASE_URL, `/api/games/fetch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: pgn || example, username: username.trim(), month }),
-          signal: run.signal,
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Could not import the game.');
-        pgn = data.pgn;
-      }
-      if (pgn.length > 100_000) throw new Error('Use a single PGN game under 100,000 characters.');
+      const pgn = await importGame({ input, username, month, fallback: example, signal: run.signal });
       const history = await parseGame(pgn, run.signal);
       run.signal.throwIfAborted();
       engine = createStockfishClient();
@@ -127,23 +116,8 @@ export default function TurningPoints() {
     <main className="p-4 md:p-8 space-y-6">
       <h1 className="text-2xl font-semibold text-slate-900">Turning Points</h1>
       <form onSubmit={analyzeGame} className="space-y-3 rounded-xl bg-white p-5 ring-1 ring-slate-200">
-        <label className="block text-sm font-medium">
-          Game link or PGN
-          <textarea value={input} onChange={e => setInput(e.target.value)} disabled={!!progress}
-            placeholder={example} rows={3} className="mt-1 w-full rounded-md border border-slate-300 p-2 font-mono text-sm" />
-        </label>
-        {isChessCom && (
-          <div className="flex flex-wrap gap-3">
-            <label className="text-sm">Either player’s Chess.com username
-              <input required value={username} onChange={e => setUsername(e.target.value)} disabled={!!progress}
-                className="block rounded border border-slate-300 p-2" />
-            </label>
-            <label className="text-sm">Month the game ended (UTC)
-              <input required type="month" value={month} onChange={e => setMonth(e.target.value)} disabled={!!progress}
-                className="block rounded border border-slate-300 p-2" />
-            </label>
-          </div>
-        )}
+        <GameInput input={input} setInput={setInput} username={username} setUsername={setUsername}
+          month={month} setMonth={setMonth} disabled={!!progress} placeholder={example} />
         <div className="flex flex-wrap items-center gap-3">
           <label className="text-sm">Engine depth{' '}
             <input type="number" min="4" max="18" value={depth} onChange={e => setDepth(e.target.valueAsNumber || 12)}
@@ -153,7 +127,6 @@ export default function TurningPoints() {
           {progress && <button type="button" onClick={() => active.current?.abort()} className="underline">Cancel analysis</button>}
         </div>
         {progress && <p role="status" className="text-sm">{progress.total ? `Analyzed ${progress.done} of ${progress.total} positions` : 'Importing game…'}</p>}
-        {isChessCom && <p className="text-xs text-slate-500">ChessTrace is independent and unaffiliated with Chess.com.</p>}
       </form>
       {error && <p role="alert" className="text-red-700">{error}</p>}
       {puzzles?.length === 0 && <p>No moves with a usable solution lost more than 150 centipawns.</p>}
