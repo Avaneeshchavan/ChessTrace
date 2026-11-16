@@ -74,3 +74,17 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 - Due Vault puzzles support legal moves, two hints, promotion selection, and reveal. The browser WASM worker checks alternate moves. Rating suggestions use the existing SM-2 endpoint.
 - The additive Attempt migration supports retry-safe recording and weekly move-based solve rates by motif. The production Neon migration is pending.
 - [M6 verification](m6/README.md) records local API and browser results, screenshots, and the saved alternate-move evidence.
+
+## Sprint audit and M7 Twin Game
+
+| Prompt | Status at the M7 audit |
+| --- | --- |
+| M0 | Standing instructions are in `AGENTS.md`. |
+| M1 | Repository cleanup, workflow, and follow-up UI merged to main. See [M1 evidence](M1.md). |
+| M2 | Compact storage and compatibility implemented and measured locally. See [capacity evidence](CAPACITY_MVP.md). |
+| M3 | Ingest pipeline and resume checks implemented. The M7 read-only check found 777 compact games on Neon. Completion of the full staged corpus plan and its production resource measurements were not verified in M7. |
+| M4 | Production smoke tests passed during M4 and the Vercel API cutover. External monitoring remains pending in the [hosting log](HOSTING.md). |
+| M5 | Mobile pass and PWA implemented. The [M5 evidence](m5/README.md) records local measurements and remaining physical-device checks. |
+| M6 | Implemented and verified locally. The Neon migration log still lacked `0005_puzzle_attempts` during the M7 read-only check. |
+| M7 | Twin Game implemented and verified locally at 390px and 1280px. The final batched query was measured on both live Neon layouts. [M7 evidence](m7/README.md). |
+| M8 and M9 | Remaining sprint prompts. |

@@ -1,0 +1,36 @@
+{
+  "scope": "read-only Neon, SQL round trip including row transfer, excluding HTTP and replay decoding",
+  "pgn": "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4",
+  "plies": 19,
+  "samplesPerLayout": 5,
+  "connectMs": 862.7,
+  "m6MigrationApplied": false,
+  "timings": [
+    {
+      "layout": "legacy",
+      "corpusGames": 10473,
+      "departure": 19,
+      "wallMs": [
+        275.7,
+        253,
+        178.5,
+        170.1,
+        239.6
+      ],
+      "medianMs": 239.6
+    },
+    {
+      "layout": "compact",
+      "corpusGames": 777,
+      "departure": 17,
+      "wallMs": [
+        136.9,
+        146.5,
+        161.8,
+        133.5,
+        202.8
+      ],
+      "medianMs": 146.5
+    }
+  ]
+}

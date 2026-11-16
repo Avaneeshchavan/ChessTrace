@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Ruy Lopez departure",
+    "compact": false,
+    "departure": 6
+  },
+  {
+    "name": "Departure on move three",
+    "compact": false,
+    "departure": 4
+  },
+  {
+    "name": "Stayed to the end",
+    "compact": false,
+    "departure": 6
+  },
+  {
+    "name": "Reached by transposition",
+    "compact": false,
+    "departure": 4
+  },
+  {
+    "name": "Departure at the first move",
+    "compact": false,
+    "departure": 0
+  },
+  {
+    "name": "Ruy Lopez departure",
+    "compact": true,
+    "departure": 6
+  },
+  {
+    "name": "Departure on move three",
+    "compact": true,
+    "departure": 4
+  },
+  {
+    "name": "Stayed to the end",
+    "compact": true,
+    "departure": 6
+  },
+  {
+    "name": "Reached by transposition",
+    "compact": true,
+    "departure": 4
+  },
+  {
+    "name": "Departure at the first move",
+    "compact": true,
+    "departure": 0
+  }
+]
