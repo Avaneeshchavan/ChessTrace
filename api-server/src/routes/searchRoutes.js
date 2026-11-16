@@ -3,6 +3,8 @@ const express = require('express');
 const { validateFen } = require('chess.js');
 const { checkSyntacticLegality } = require('../legality');
 const { findExactMatch, findSimilarPositions, findGameReplay, fenCoreToFullFen } = require('../search');
+const { authMiddleware } = require('../middleware/authMiddleware');
+const { analyzeTwinGame, parseTwinGame } = require('../twin-game');
 
 function getSearchPosition(fen) {
   if (typeof fen !== 'string' || !fen.trim() || fen.length > 200) {
@@ -21,6 +23,18 @@ function getSearchPosition(fen) {
 
 function createSearchRouter(prisma = require('../db')) {
   const router = express.Router();
+
+  router.post('/twin', authMiddleware, async (req, res) => {
+    let history;
+    try { history = parseTwinGame(req.body?.pgn); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
+    try {
+      return res.json(await analyzeTwinGame(prisma, history));
+    } catch (error) {
+      console.error('Twin Game search error:', error);
+      return res.status(500).json({ error: 'Could not compare the game with the corpus.' });
+    }
+  });
 
   router.get('/similar', async (req, res) => {
     const { fenCore, error } = getSearchPosition(req.query.fen);

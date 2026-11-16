@@ -70,4 +70,4 @@ async function findCompactGame(prisma, id) {
   return row ? { pgn: gamePgn(row) } : null;
 }
 
-module.exports = { findCompactExact, findCompactSimilar, findCompactGame };
+module.exports = { findCompactExact, findCompactSimilar, findCompactGame, gamePgn };
