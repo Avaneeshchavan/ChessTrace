@@ -6,6 +6,7 @@ const shell = [
   'index.html', 'favicon.png', 'manifest.webmanifest',
   'icons/chess-trace-192.png', 'icons/chess-trace-512.png',
   'icons/chess-trace-maskable-512.png',
+  'product/guided-e4.png',
 ];
 const engine = ['stockfish/stockfish-worker.js', 'stockfish/stockfish.js', 'stockfish/stockfish.wasm.js', 'stockfish/stockfish.wasm'];
 

@@ -7,6 +7,7 @@ const shellPaths = new Set(config.shell);
 const enginePaths = new Set(config.engine);
 const appRoutes = new Set([
   '/', '/auth', '/dashboard', '/lens', '/sandbox', '/turning-points', '/twin-game', '/vault', '/vault/review', '/settings', '/offline',
+  '/sample', '/about', '/privacy',
 ]);
 const pendingShares = new Map();
 

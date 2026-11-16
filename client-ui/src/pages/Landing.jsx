@@ -45,7 +45,7 @@ export default function Landing() {
             <p className="landing-lede">Turn a board screenshot into a position you can trace, replay, and study.</p>
             <div className="landing-actions">
               <Link className="ct-button" to={start}>{startLabel} <ArrowRight size={17} aria-hidden="true" /></Link>
-              <a className="landing-text-link" href="#sample-game">Try the replay <ArrowDown size={15} aria-hidden="true" /></a>
+              <Link className="landing-text-link" to="/sample">Trace a sample board <ArrowRight size={15} aria-hidden="true" /></Link>
             </div>
           </div>
           <OpeningReplay />
@@ -53,6 +53,7 @@ export default function Landing() {
 
         <section className="landing-workflow" id="workflow" aria-labelledby="workflow-title">
           <h2 id="workflow-title" className="ct-display">From screenshot to replay</h2>
+          <a className="landing-text-link" href="#sample-game">Jump to the Opera Game preview <ArrowDown size={15} aria-hidden="true" /></a>
           <ol>
             {steps.map(([Icon, title, detail]) => (
               <li key={title}>
@@ -80,7 +81,10 @@ export default function Landing() {
 
       <footer className="landing-footer">
         <Link to="/" aria-label="ChessTrace home"><ChessTraceLogo /></Link>
-        <Link to={start}>Start studying <ArrowRight size={15} aria-hidden="true" /></Link>
+        <nav aria-label="About ChessTrace" className="flex flex-wrap items-center gap-x-4">
+          <Link to="/about">About and credits</Link>
+          <Link to="/privacy">Privacy</Link>
+        </nav>
       </footer>
     </div>
   );

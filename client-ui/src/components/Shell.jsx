@@ -30,6 +30,8 @@ export function Shell() {
   const [menuPath, setMenuPath] = useState(null);
   const menuOpen = menuPath === pathname;
   const sheet = useRef(null);
+  const main = useRef(null);
+  const visited = useRef(pathname);
   const closeSheet = () => sheet.current?.close();
 
   useEffect(() => {
@@ -38,6 +40,13 @@ export function Shell() {
     desktop.addEventListener('change', closeOnResize);
     return () => desktop.removeEventListener('change', closeOnResize);
   }, []);
+
+  useEffect(() => {
+    if (visited.current !== pathname) {
+      visited.current = pathname;
+      main.current?.focus();
+    }
+  }, [pathname]);
 
   return (
     <div className="study-shell">
@@ -60,10 +69,18 @@ export function Shell() {
           {token && <button type="button" onClick={logout} className="study-logout"><LogOut size={17} aria-hidden="true" /> Sign out</button>}
         </div>
       </aside>
-      <div className="study-content" id="study-main" tabIndex={-1}>
+      <div className="study-content" id="study-main" tabIndex={-1} ref={main}>
         {online ? <ServiceHealthBanner url={API_BASE_URL} />
           : <div className="study-health" role="status">You’re offline. <Link className="underline" to="/offline">See what’s available</Link></div>}
-        <Outlet />
+        {online || pathname === '/sandbox' ? <Outlet /> : (
+          <main className="ct-workspace ct-offline-page">
+            <header className="ct-workspace-header">
+              <h1>ChessTrace is offline</h1>
+              <p>Reconnect to access the corpus and your account. You can still play moves in Sandbox.</p>
+            </header>
+            <Link className="ct-button" to="/sandbox">Open Sandbox</Link>
+          </main>
+        )}
       </div>
       <nav className="study-tabs" aria-label="Mobile study navigation">
         {mobileItems.map(([to, label, Icon]) => (

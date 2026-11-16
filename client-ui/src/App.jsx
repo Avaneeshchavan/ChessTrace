@@ -15,6 +15,8 @@ const TwinGame = lazy(() => import('./pages/TwinGame'));
 const PatternVault = lazy(() => import('./pages/PatternVault'));
 const VaultReview = lazy(() => import('./pages/VaultReview'));
 const Settings = lazy(() => import('./pages/Settings'));
+const About = lazy(() => import('./pages/Information').then(module => ({ default: module.About })));
+const Privacy = lazy(() => import('./pages/Information').then(module => ({ default: module.Privacy })));
 
 function ProtectedRoute({ children }) {
   const { token } = useAuth();
@@ -23,7 +25,7 @@ function ProtectedRoute({ children }) {
   if (token || (!online && pathname === '/sandbox')) return children;
   if (!online) return <Navigate to="/offline" replace />;
   const share = pathname === '/lens' && new URLSearchParams(search).has('share');
-  return <Navigate to="/auth" state={share ? { returnTo: pathname + search } : undefined} replace />;
+  return <Navigate to="/auth" state={share || pathname === '/settings' ? { returnTo: pathname + search } : undefined} replace />;
 }
 
 function OfflinePage() {
@@ -50,6 +52,9 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/sample" element={<OriginLens key="sample" sample />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="/offline" element={<OfflinePage />} />
             <Route element={<ProtectedRoute><Shell /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />

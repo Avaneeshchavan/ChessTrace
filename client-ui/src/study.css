@@ -1,9 +1,9 @@
-.ct-display, .study-content h1 {
+.ct-display, .study-content h1, .ct-workspace-header h1 {
   font-family: var(--ct-font-display);
   font-weight: 400;
   letter-spacing: -.025em;
 }
-.study-content h1 { font-size: var(--ct-title); line-height: 1; }
+.study-content h1, .ct-workspace-header h1 { font-size: var(--ct-title); line-height: 1; }
 .ct-kicker {
   font: 400 .75rem/1.5 var(--ct-font-code);
   letter-spacing: .14em;
@@ -333,3 +333,28 @@
   .twin-timeline li { border-top: 0; border-inline-start: 2px solid var(--ct-line); }
   .twin-compare { grid-template-columns: minmax(0, 1fr); }
 }
+
+.sample-steps { display: flex; flex-wrap: wrap; gap: .4rem; }
+.sample-steps li { padding: .35rem .55rem; border: 1px solid var(--ct-line); border-radius: .3rem; color: var(--ct-muted); font-size: .75rem; }
+.sample-steps li[data-done="true"] { background: var(--ct-raised); color: var(--ct-success); }
+[data-sample="true"] .review-dock { position: static; }
+.ct-information { max-width: 48rem; }
+.ct-information h1 { font-size: var(--ct-title); }
+.ct-information section { margin-top: 1.6rem; }
+.ct-information h2 { font: 1.85rem/1.1 var(--ct-font-display); }
+.ct-information p { margin-top: .65rem; color: var(--ct-muted); }
+.ct-information p a { color: var(--ct-accent); text-decoration: underline; }
+.account-delete-dialog {
+  margin: auto;
+  width: min(calc(100% - 2rem), 30rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--ct-line);
+  border-radius: var(--ct-radius);
+  background: var(--ct-panel);
+  color: var(--ct-ink);
+}
+.account-delete-dialog::backdrop { background: #000a; }
+.ct-danger-button { min-height: 44px; padding: .55rem .75rem; border-radius: .4rem; font-size: .875rem; font-weight: 650; background: var(--ct-danger); color: var(--ct-bg); }
+.ct-danger-button:disabled { opacity: .6; }

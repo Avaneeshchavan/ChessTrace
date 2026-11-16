@@ -4,7 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config/api';
 import { validatePassword } from '../utils/validation';
 import { Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useServiceHealth } from '../hooks/useServiceHealth';
+import { DeleteAccount } from '../components/DeleteAccount';
 
 export default function Settings() {
   const { token, user, updateUser, logout } = useAuth();
@@ -148,9 +150,6 @@ export default function Settings() {
     }
   };
 
-  // Helper to get fallback name
-  const displayFallback = user?.displayName || user?.email.split('@')[0];
-
   return (
     <main className="min-h-dvh bg-slate-50 p-4 sm:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -162,9 +161,12 @@ export default function Settings() {
             <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
               <div className="animate-pulse font-medium">Waiting for servers to wake up...</div>
             </div>
+          ) : status === 'error' ? (
+            <p role="alert" className="text-sm text-red-700">The account service is unavailable. Use Retry above to reconnect.</p>
           ) : loadingSummary ? (
-            <div className="flex justify-center p-4">
-              <Loader2 size={24} className="text-[var(--ct-accent)] animate-spin" />
+            <div className="flex justify-center p-4" role="status">
+              <Loader2 size={24} className="text-[var(--ct-accent)] animate-spin" aria-hidden="true" />
+              <span className="sr-only">Loading account summary…</span>
             </div>
           ) : summaryError ? (
             <div className="text-red-500 text-sm">{summaryError}</div>
@@ -293,7 +295,11 @@ export default function Settings() {
             </div>
           </form>
         </div>
-
+        <DeleteAccount token={token} logout={logout} />
+        <nav className="flex flex-wrap gap-3" aria-label="ChessTrace information">
+          <Link className="ct-quiet" to="/about">About and credits</Link>
+          <Link className="ct-quiet" to="/privacy">Privacy</Link>
+        </nav>
       </div>
     </main>
   );

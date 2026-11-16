@@ -126,3 +126,5 @@ cg-board .cg-shapes svg .cg-circle {
   stroke: #e2ad72bf;
 }
 
+
+.ct-board-surface:focus-visible cg-board square.ct-keyboard-square { outline: 3px solid #fff4ce; outline-offset: -4px; }

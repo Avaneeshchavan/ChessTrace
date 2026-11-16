@@ -1,16 +1,28 @@
 import { fetchService } from '../config/serviceRequest';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, AlertTriangle, Search, Loader2, ArrowUpRight, Camera } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { GameReplay } from '../components/Board/GameReplay';
 import { ScreenshotReview } from '../components/Board/ScreenshotReview';
 import ServiceHealthBanner from '../components/ServiceHealthBanner';
 import { useServiceHealth } from '../hooks/useServiceHealth';
+import { useOnline } from '../hooks/useOnline';
 import { takeSharedImage } from '../utils/sharedImage';
 
 import { API_BASE_URL as API_URL, VISION_ENGINE_URL as VISION_URL } from '../config/api';
 
-export default function OriginLens() {
+const sampleFen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+
+function replayRecord(match) {
+  const game = match.game ?? match;
+  return { id: match.id, gameId: match.gameId ?? game.id, halfMove: match.halfMove,
+    whiteName: game.whiteName, blackName: game.blackName };
+}
+
+export default function OriginLens({ sample = false }) {
+  const online = useOnline();
+  const [sampleRun, setSampleRun] = useState(0);
+  const [sampleChecked, setSampleChecked] = useState(false);
   const { status: visionHealthStatus } = useServiceHealth(VISION_URL);
   // Pipeline states
   const [phase, setPhase] = useState('idle'); // idle | uploading | review | searching | done | error
@@ -40,7 +52,7 @@ export default function OriginLens() {
   useEffect(() => () => requestRef.current?.abort(), []);
 
   // ---- Upload Handler ----
-  const processFile = useCallback(async (file) => {
+  const processFile = useCallback(async (file, expectedFen) => {
     if (!file) return;
 
     requestRef.current?.abort();
@@ -72,8 +84,10 @@ export default function OriginLens() {
 
       const vision = await visionRes.json();
       if (request.signal.aborted) return;
+      if (expectedFen && vision.fen.split(' ')[0] === expectedFen.split(' ')[0]) vision.fen = expectedFen;
       setVisionResult(vision);
       setPhase('review');
+      return vision;
     } catch (err) {
       if (request.signal.aborted) return;
       setPhase('error');
@@ -100,7 +114,7 @@ export default function OriginLens() {
     return () => { active = false; };
   }, [params, setParams, processFile]);
 
-  const searchPosition = useCallback(async (fen) => {
+  const searchPosition = useCallback(async (fen, replayFirst = false) => {
     requestRef.current?.abort();
     const request = new AbortController();
     requestRef.current = request;
@@ -109,7 +123,7 @@ export default function OriginLens() {
     setReplay(null);
     setPhase('searching');
     try {
-      const searchRes = await fetchService(API_URL, `/api/search?fen=${encodeURIComponent(fen)}`,
+      const searchRes = await fetchService(API_URL, `/api/search?fen=${encodeURIComponent(fen)}&includeCorpusCount=1`,
         { signal: request.signal },
       );
 
@@ -121,6 +135,10 @@ export default function OriginLens() {
       const search = await searchRes.json();
       if (request.signal.aborted) return;
       setSearchResult(search);
+      if (replayFirst && search.matchType === 'exact') {
+        const first = search.matches.map(replayRecord).find(record => record.gameId);
+        if (first) setReplay(first);
+      }
       setPhase('done');
     } catch (err) {
       if (request.signal.aborted) return;
@@ -128,6 +146,34 @@ export default function OriginLens() {
       setErrorMessage(err.message || 'An unexpected error occurred.');
     }
   }, []);
+
+  useEffect(() => {
+    if (!sample || !online) return;
+    const controller = new AbortController();
+    async function guide() {
+      setSampleChecked(false);
+      setPhase('uploading');
+      setErrorMessage('');
+      try {
+        const response = await fetch('/product/guided-e4.png', { signal: controller.signal });
+        if (!response.ok) throw new Error('The sample image could not load.');
+        const image = await response.blob();
+        if (controller.signal.aborted) return;
+        // The game record supplies the side to move and castling rights for the sample.
+        const vision = await processFile(new File([image], 'guided-e4.png', { type: 'image/png' }), sampleFen);
+        if (!vision || controller.signal.aborted) return;
+        if (vision.fen !== sampleFen) return;
+        setSampleChecked(true);
+        await searchPosition(sampleFen, true);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setPhase('error');
+        setErrorMessage(error.message);
+      }
+    }
+    guide();
+    return () => { controller.abort(); requestRef.current?.abort(); };
+  }, [sample, online, sampleRun, processFile, searchPosition]);
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -151,7 +197,7 @@ export default function OriginLens() {
   }
 
   const uploading = phase === 'uploading';
-  const uploadDisabled = visionHealthStatus === 'waking' || visionHealthStatus === 'error';
+  const uploadDisabled = !online || visionHealthStatus === 'waking' || visionHealthStatus === 'error';
   const confidence = Math.round((visionResult?.theme_match_confidence ?? 0) * 100);
   const games = new Map();
   for (const match of searchResult?.matches ?? []) {
@@ -161,15 +207,18 @@ export default function OriginLens() {
   const matches = [...games.values()];
 
   return (
-    <main className="ct-workspace">
+    <main className="ct-workspace" data-sample={sample}>
       <header className="ct-workspace-header">
-        <h1>Origin Lens</h1>
-        <p>Find where a position appeared and replay the games that led to it.</p>
+        <h1>{sample ? 'Trace a sample board' : 'Origin Lens'}</h1>
+        <p>{sample ? 'Follow the screenshot from recognition to a replay. This example starts after 1. e4.'
+          : 'Find where a position appeared and replay the games that led to it.'}</p>
+        {sample && <Link className="ct-quiet mt-3" to="/">Back to ChessTrace</Link>}
       </header>
+      {!online && <p role="status" className="ct-panel mb-4 p-3 text-sm">Reconnect to scan a screenshot and search the corpus.</p>}
       <div className="lens-layout">
         <section className="space-y-3 min-w-0" aria-label="Position input">
           <ServiceHealthBanner url={VISION_URL} label="image scanner" />
-          <div className="ct-panel lens-upload" data-has-result={!!visionResult}
+          {!sample && <div className="ct-panel lens-upload" data-has-result={!!visionResult}
             onDrop={event => { if (uploadDisabled) event.preventDefault(); else handleDrop(event); }}
             onDragOver={event => { event.preventDefault(); if (!uploadDisabled) setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}>
@@ -196,7 +245,23 @@ export default function OriginLens() {
               </div>
             )}
             {uploading && <span className="sr-only" role="status">Analyzing board screenshot.</span>}
-          </div>
+          </div>}
+          {sample && <div className="ct-panel lens-upload">
+            <ol className="sample-steps" aria-label="Sample progress">
+              <li data-done={!!previewUrl}>1. Screenshot</li>
+              <li data-done={!!visionResult}>2. Board review</li>
+              <li data-done={!!searchResult}>3. Match</li>
+              <li data-done={!!replay}>4. Replay</li>
+            </ol>
+            <div className="lens-preview">
+              <img src="/product/guided-e4.png" width="596" height="572" alt="Generated chessboard after White plays e4" />
+              {uploading && <span className="lens-scan" aria-hidden="true" />}
+            </div>
+            {uploading && <p role="status" className="mt-2 text-sm">Scanning the sample screenshot…</p>}
+            {sampleChecked && <p className="mt-2 text-sm text-slate-500">Piece placement matches the example. The game record supplies Black to move and the castling rights.</p>}
+            {visionResult && !sampleChecked && <p className="mt-2 text-sm">Review the detected pieces before searching.</p>}
+            {phase === 'error' && online && <button type="button" className="ct-quiet mt-2" onClick={() => setSampleRun(value => value + 1)}>Retry sample</button>}
+          </div>}
 
           {phase === 'error' && (
             <div role="alert" className="ct-panel flex gap-2 p-3 text-sm text-red-700">
@@ -208,7 +273,7 @@ export default function OriginLens() {
           {visionResult && (
             <>
               <p className="font-mono text-xs text-slate-500">Template match {confidence}% · {visionResult.orientation === 'black_bottom' ? 'Black' : 'White'} at bottom</p>
-              <ScreenshotReview result={visionResult} searching={phase === 'searching'} onSearch={searchPosition} onEdit={clearSearch} />
+              <ScreenshotReview result={visionResult} searching={phase === 'searching'} offline={!online} onSearch={searchPosition} onEdit={clearSearch} />
             </>
           )}
         </section>
@@ -223,14 +288,18 @@ export default function OriginLens() {
           ) : searchResult ? (
             <>
               <p className="mt-2 font-mono text-xs text-accent">{matches.length} {matches.length === 1 ? 'game' : 'games'} with {searchResult.matchType === 'exact' ? 'this position' : 'similar positions'}</p>
-              {!matches.length && <p className="py-6 text-sm text-slate-500">No matching games found. Check the position and side to move.</p>}
+              {searchResult.matchType === 'similar' && <p className="my-3 text-sm text-slate-500">
+                No exact match found{Number.isInteger(searchResult.corpusGames)
+                  ? ` in ${searchResult.corpusGames.toLocaleString()} ${searchResult.corpusGames === 1 ? 'game' : 'games'}` : ''}.
+                {matches.length ? ' Similar positions are shown below.' : ' No similar positions were available.'}
+                {' '}Check castling rights, side to move, and any flagged squares.
+              </p>}
               {replay && <div className="my-4"><GameReplay key={replay.id} match={replay} /></div>}
               <ol>
                 {matches.map(match => {
                   const game = match.game ?? match;
                   const year = game.playedAt?.slice(0, 4);
-                  const record = { id: match.id, gameId: match.gameId ?? game.id, halfMove: match.halfMove,
-                    whiteName: game.whiteName, blackName: game.blackName };
+                  const record = replayRecord(match);
                   return (
                     <li key={match.id} className="lens-match">
                       <p className="font-mono text-xs text-slate-500">{[game.event, year, game.result,

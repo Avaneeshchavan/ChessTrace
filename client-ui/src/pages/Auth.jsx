@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Play } from 'lucide-react';
 import ChessTraceLogo from '../components/ChessTraceLogo';
@@ -6,11 +6,13 @@ import { API_BASE_URL } from '../config/api';
 import { ServiceRequestInterruptedError, ServiceUnavailableError } from '../config/serviceRequest';
 import { useAuth } from '../context/AuthContext';
 import { useServiceHealth } from '../hooks/useServiceHealth';
+import { useOnline } from '../hooks/useOnline';
 import { validatePassword } from '../utils/validation';
 import '../auth.css';
 
 export default function Auth() {
   const navigate = useNavigate();
+  const online = useOnline();
   const { state } = useLocation();
   const { login, register } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,13 +24,15 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [accountDeleted] = useState(() => sessionStorage.getItem('chesstrace-account-deleted') === '1');
+  useEffect(() => { sessionStorage.removeItem('chesstrace-account-deleted'); }, []);
   const connecting = status === 'waking' || status === 'checking';
   const showConnectionError = status === 'error' && !error;
   const showConnecting = !error && (status === 'waking' || (loading && connecting));
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (loading) return;
+    if (loading || !online) return;
     setError('');
     if (!isLogin) {
       const { valid, message } = validatePassword(password);
@@ -42,7 +46,7 @@ export default function Auth() {
       if (isLogin) await login(email.trim(), password);
       else await register(email.trim(), password, displayName.trim());
       const returnTo = state?.returnTo;
-      const allowed = ['/sandbox', '/vault'].includes(returnTo) || /^\/lens\?share=(?:[a-f\d-]{36}|invalid)$/i.test(returnTo ?? '');
+      const allowed = ['/sandbox', '/vault', '/settings'].includes(returnTo) || /^\/lens\?share=(?:[a-f\d-]{36}|invalid)$/i.test(returnTo ?? '');
       const destination = allowed ? returnTo : '/dashboard';
       navigate(destination, { replace: true });
     } catch (err) {
@@ -90,14 +94,16 @@ export default function Auth() {
             </div>
             <h1 id="auth-title" className="ct-display">{isLogin ? 'Welcome back.' : 'Create your account.'}</h1>
             <p className="auth-description">{isLogin ? 'Sign in to continue studying.' : 'Save positions and keep track of your practice.'}</p>
+            {accountDeleted && <p role="status" className="auth-status">Your account was deleted.</p>}
 
-            {showConnecting && (
+            {!online && <p role="status" className="auth-status">Reconnect to sign in or create an account.</p>}
+            {online && showConnecting && (
               <div className="auth-status" role="status">
                 <Loader2 size={17} className="animate-spin" aria-hidden="true" />
                 <div><strong>Connecting to ChessTrace</strong><p>The server may take about a minute to wake up.</p></div>
               </div>
             )}
-            {showConnectionError && (
+            {online && showConnectionError && (
               <div className="auth-status auth-status-error">
                 <div role="status"><strong>Couldn’t reach the server</strong><p>Your entries are still here. Reconnect and try again.</p></div>
                 <button type="button" onClick={retry}>Retry connection</button>
@@ -130,12 +136,12 @@ export default function Auth() {
                 </div>
                 {!isLogin && <p id="password-hint">Use at least 6 characters.</p>}
               </div>
-              <button type="submit" disabled={loading} className="ct-button auth-submit">
+              <button type="submit" disabled={loading || !online} className="ct-button auth-submit">
                 {loading ? (connecting ? 'Connecting…' : isLogin ? 'Signing in…' : 'Creating account…') : isLogin ? 'Sign in' : 'Sign up'}
                 {loading ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : <ArrowRight size={17} aria-hidden="true" />}
               </button>
             </form>
-            <Link className="auth-sample" to="/#sample-game"><Play size={15} aria-hidden="true" /> Try the sample replay without an account</Link>
+            <Link className="auth-sample" to="/sample"><Play size={15} aria-hidden="true" /> Trace a sample board without an account</Link>
           </section>
         </div>
       </div>
