@@ -95,7 +95,11 @@ function createSearchRouter(prisma = require('../db')) {
         matchType = 'similar';
       }
 
-      res.json({ matches: matches.map(match => ({ ...match, id: String(match.id) })), matchType, fenCore });
+      const includeCount = req.query.includeCorpusCount === '1' && matchType === 'similar';
+      const corpusGames = includeCount
+        ? await (process.env.USE_COMPACT_STORAGE === 'true' ? prisma.compactGame.count() : prisma.game.count())
+        : undefined;
+      res.json({ matches: matches.map(match => ({ ...match, id: String(match.id) })), matchType, fenCore, corpusGames });
 
       // Fire-and-forget logging
       const authHeader = req.headers.authorization;

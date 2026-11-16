@@ -11,9 +11,9 @@ router.use(authMiddleware);
 // PATCH /api/users/me (Update Display Name)
 router.patch('/me', async (req, res) => {
   try {
-    let { displayName } = req.body;
+    let { displayName } = req.body ?? {};
     
-    if (displayName === undefined) {
+    if (typeof displayName !== 'string') {
       return res.status(400).json({ error: 'displayName is required' });
     }
 
@@ -123,6 +123,34 @@ router.get('/me/summary', async (req, res) => {
   } catch (err) {
     console.error('Account summary error:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/me', async (req, res) => {
+  const { password } = req.body ?? {};
+  if (typeof password !== 'string' || !password || password.length > 1024) {
+    return res.status(400).json({ error: 'Enter your current password.' });
+  }
+  try {
+    const id = req.user.id;
+    const user = await prisma.user.findUnique({ where: { id }, select: { passwordHash: true } });
+    if (!user) return res.status(404).json({ code: 'ACCOUNT_NOT_FOUND', error: 'Account was not found.' });
+    if (!await bcrypt.compare(password, user.passwordHash)) {
+      return res.status(403).json({ error: 'Current password is incorrect.' });
+    }
+    await prisma.$transaction(async tx => {
+      // Lock the parent before removing activity rows so new foreign-key writes wait.
+      const rows = await tx.$queryRaw`SELECT id FROM "User"
+        WHERE id = ${id} AND "passwordHash" = ${user.passwordHash} FOR UPDATE`;
+      if (!rows.length) throw Object.assign(new Error('Account changed'), { code: 'P2025' });
+      await tx.activityLog.deleteMany({ where: { userId: id } });
+      await tx.user.delete({ where: { id } });
+    });
+    return res.status(204).end();
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(409).json({ error: 'Account changed. Sign in again before retrying.' });
+    console.error('Delete account error:', error.code || error.name);
+    return res.status(500).json({ error: 'Could not delete the account.' });
   }
 });
 
