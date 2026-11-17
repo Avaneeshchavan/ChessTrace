@@ -3,24 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#161411" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/chess-trace-192.png" />
     <meta name="description" content="Trace chess positions from screenshots, replay historical matches, and study with Stockfish." />
-    <script>
-      if (location.pathname === '/') {
-        const preview = document.createElement('link');
-        preview.rel = 'preload';
-        preview.as = 'image';
-        if (matchMedia('(max-width: 760px)').matches) {
-          preview.href = '/product/origin-lens-mobile.webp';
-        } else {
-          preview.imageSrcset = '/product/origin-lens-720.webp 720w, /product/origin-lens.webp 1100w';
-          preview.imageSizes = '(max-width: 1350px) 54vw, 752px';
-        }
-        preview.fetchPriority = 'high';
-        document.head.append(preview);
-      }
-    </script>
     <title>ChessTrace — Chess study room</title>
   </head>
   <body>

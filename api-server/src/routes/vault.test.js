@@ -4,16 +4,21 @@ const Module = require('node:module');
 const express = require('express');
 const { Prisma, PrismaClient } = require('@prisma/client');
 const { randomUUID } = require('node:crypto');
+const jwt = require('jsonwebtoken');
 const live = process.env.CHESSTRACE_LIVE_DB_TEST === '1';
 if (live) require('dotenv').config({ quiet: true });
 
 // Offline integration: real HTTP, routes, bcrypt, JWT and SM-2; Prisma only is mocked.
 test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prisma database)`, async (t) => {
   const previousSecret = process.env.JWT_SECRET;
+  const previousTolerance = process.env.PUZZLE_TOLERANCE_CP;
   process.env.JWT_SECRET = 'vault-test-secret';
+  process.env.PUZZLE_TOLERANCE_CP = '25';
   t.after(() => {
     if (previousSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = previousSecret;
+    if (previousTolerance === undefined) delete process.env.PUZZLE_TOLERANCE_CP;
+    else process.env.PUZZLE_TOLERANCE_CP = previousTolerance;
   });
   const fields = Prisma.dmmf.datamodel.models.find(m => m.name === 'SavedPuzzle').fields;
   const defaults = Object.fromEntries(fields.filter(f => f.hasDefaultValue).map(f => [f.name, f.default]));
@@ -25,6 +30,7 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
   let user;
   let puzzle;
   const activity = [];
+  const attempts = new Map();
   const db = live ? new PrismaClient() : {
     user: {
       findUnique: async () => user ?? null,
@@ -43,7 +49,8 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
         assert.equal(take, 20);
         return puzzle.nextReviewAt <= where.nextReviewAt.lte ? [puzzle] : [];
       },
-      findUnique: async ({ where }) => where.id === puzzle.id ? puzzle : null,
+      findUnique: async ({ where }) =>
+        where.id === puzzle.id && (!where.userId || where.userId === puzzle.userId) ? puzzle : null,
       update: async ({ where, data }) => {
         assert.equal(where.id, puzzle.id);
         puzzle = { ...puzzle, ...data, tags: data.tags ? data.tags.connectOrCreate.map(({ create }) => create) : puzzle.tags };
@@ -53,6 +60,16 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
     activityLog: {
       create: async ({ data }) => activity.push({ ...data, createdAt: new Date() }),
       findMany: async ({ where }) => activity.filter(log => log.userId === where.userId && log.type === where.type),
+    },
+    attempt: {
+      create: async ({ data }) => {
+        if (attempts.has(data.id)) throw Object.assign(new Error('Duplicate attempt'), { code: 'P2002' });
+        const record = { ...data, createdAt: new Date() };
+        attempts.set(data.id, record);
+        return record;
+      },
+      findUnique: async ({ where }) => attempts.get(where.id),
+      findMany: async ({ where }) => [...attempts.values()].filter(row => row.userId === where.userId && row.createdAt >= where.createdAt.gte),
     },
     $transaction: async fn => fn(db),
   };
@@ -80,10 +97,10 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
   await new Promise(resolve => server.once('listening', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   let token;
-  async function request(path, method = 'GET', body) {
+  async function request(path, method = 'GET', body, bearer = token) {
     const res = await fetch(base + path, {
       method,
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers: { 'Content-Type': 'application/json', ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
     return { status: res.status, body: await res.json() };
@@ -116,4 +133,48 @@ test(`register, save, queue and review a puzzle (${live ? 'live' : 'mock'} Prism
   assert.deepEqual(edit.body.puzzle.tags.map(tag => tag.name).sort(), ['Pin', 'Skewer']);
   assert.deepEqual((await request('/api/vault/review-stats')).body, stats.body);
   assert.deepEqual((await request('/api/vault/review-queue')).body.queue, []);
+
+  const { DEFAULT_POSITION } = require('chess.js');
+  const playable = await request('/api/vault', 'POST', { fen: DEFAULT_POSITION, solutionPgn: '1. e4', tags: ['Fork'] });
+  assert.equal(playable.status, 201);
+  const target = playable.body.puzzle.id;
+  const queueAfterSave = await request('/api/vault/review-queue');
+  assert.equal(queueAfterSave.body.queue[0].solution.moves[0].lan, 'e2e4');
+  assert.equal(queueAfterSave.body.toleranceCp, 25);
+  const path = `/api/vault/${target}/attempts`;
+  const alternative = { attemptId: randomUUID(), moveUci: 'd2d4', usedHint: true, evalLoss: 25, millis: 700 };
+  assert.equal((await request(path, 'POST', alternative, null)).status, 401);
+  const other = jwt.sign({ id: 'different-user' }, process.env.JWT_SECRET);
+  assert.equal((await request(path, 'POST', alternative, other)).status, 404);
+  assert.equal((await request(path, 'POST', { ...alternative, moveUci: 'd2d5' })).status, 400);
+  assert.equal((await request(path, 'POST', { ...alternative, evalLoss: -1 })).status, 400);
+  const submitted = await request(path, 'POST', alternative);
+  assert.equal(submitted.status, 201);
+  assert.equal(submitted.body.attempt.correct, true);
+  const replay = await request(path, 'POST', alternative);
+  assert.equal(replay.status, 200);
+  assert.deepEqual(replay.body, submitted.body);
+  assert.equal((await request(path, 'POST', { ...alternative, moveUci: 'c2c4' })).status, 409);
+  const wrong = await request(path, 'POST', { ...alternative, attemptId: randomUUID(), moveUci: 'a2a3', evalLoss: 26 });
+  assert.equal(wrong.body.attempt.correct, false);
+  const exact = await request(path, 'POST', { ...alternative, attemptId: randomUUID(), moveUci: 'e2e4', evalLoss: null });
+  assert.equal(exact.body.attempt.correct, true);
+  assert.equal(exact.body.attempt.evalLoss, 0);
+  await request(`/api/vault/${target}/tags`, 'PATCH', { tags: ['Pin'] });
+  const afterAttempts = await request('/api/vault/review-stats');
+  assert.deepEqual(afterAttempts.body.weeks, stats.body.weeks);
+  assert.deepEqual(afterAttempts.body.attemptWeeks.map(({ motif, solved, attempts }) => [motif, solved, attempts]),
+    [['Fork', 2, 3]]);
+  const schedule = await request('/api/vault/review-queue');
+  assert.equal(schedule.body.queue[0].repetitions, 0);
+
+  const mate = await request('/api/vault', 'POST', {
+    fen: 'rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2', solutionPgn: '2... Qh4#', tags: [],
+  });
+  const matePath = `/api/vault/${mate.body.puzzle.id}/attempts`;
+  const nonMate = await request(matePath, 'POST', { ...alternative, attemptId: randomUUID(), moveUci: 'b8c6' });
+  assert.equal(nonMate.body.attempt.correct, false);
+  assert.equal(nonMate.body.attempt.evalLoss, null);
+  const matingMove = await request(matePath, 'POST', { ...alternative, attemptId: randomUUID(), moveUci: 'd8h4', evalLoss: null });
+  assert.equal(matingMove.body.attempt.correct, true);
 });

@@ -10,6 +10,7 @@ VISION = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(VISION))
 from app.main import detect_bytes
 from app.pipeline.sprite_matching import SPRITE_THEMES, premultiplied, read_sprite
+from fastapi import HTTPException
 import chess
 import cv2
 import numpy as np
@@ -17,6 +18,7 @@ import numpy as np
 ASSETS = VISION.parent / "chess.com-boards-and-pieces-2.x"
 SIZES = (288, 432, 640)
 SEED = 3103
+EXTRA_BOARDS = ("blue", "icy_sea", "marble", "dark_wood", "tournament", "red")
 
 
 def make_position(rng):
@@ -30,13 +32,10 @@ def make_position(rng):
             return board
 
 
-def synthetic_cases(per_size):
+def synthetic_cases(per_size, cross_theme=False):
     rng = random.Random(SEED)
-    for theme, (piece_set, board_set) in SPRITE_THEMES.items():
-        texture = cv2.imread(str(ASSETS / "boards" / f"{board_set}.png"))
-        if texture is None:
-            raise FileNotFoundError(f"Missing board texture {board_set}")
-        for side in SIZES:
+    for theme_index, (theme, (piece_set, board_set)) in enumerate(SPRITE_THEMES.items()):
+        for size_index, side in enumerate(SIZES):
             cell = side // 8
             sprites = {}
             for symbol in "KQRBNPkqrbnp":
@@ -45,7 +44,11 @@ def synthetic_cases(per_size):
                 sprites[symbol] = premultiplied(sprite, cell)
             for i in range(per_size):
                 board = make_position(rng)
-                flipped = i % 2 == 1
+                flipped = (i + size_index * int(cross_theme)) % 2 == 1
+                texture_name = EXTRA_BOARDS[(theme_index + size_index + i) % len(EXTRA_BOARDS)] if cross_theme else board_set
+                texture = cv2.imread(str(ASSETS / "boards" / f"{texture_name}.png"))
+                if texture is None:
+                    raise FileNotFoundError(f"Missing board texture {texture_name}")
                 image = cv2.resize(texture, (side, side), interpolation=cv2.INTER_AREA)
                 for square, piece in board.piece_map().items():
                     row, col = 7 - chess.square_rank(square), chess.square_file(square)
@@ -64,7 +67,7 @@ def synthetic_cases(per_size):
                 ok, encoded = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, rng.randint(72, 94)])
                 if not ok:
                     raise ValueError("Could not JPEG encode the synthetic board")
-                yield f"{theme}/{side}", board, encoded.tobytes(), "black_bottom" if flipped else "white_bottom"
+                yield f"{theme}/{side}", board, encoded.tobytes(), "black_bottom" if flipped else "white_bottom", True
 
 
 def real_cases(manifest, image_root):
@@ -77,21 +80,37 @@ def real_cases(manifest, image_root):
             orientation = row.get("orientation") or None
             if orientation not in (None, "white_bottom", "black_bottom"):
                 raise ValueError(f"Invalid orientation: {orientation}")
-            yield "Real CSV", chess.Board(row["expected_fen"]), path.read_bytes(), orientation
+            fen = row["expected_fen"].strip()
+            fields = fen.split()
+            if len(fields) not in (1, 6):
+                raise ValueError("Expected FEN must contain piece placement alone or all six fields")
+            yield "Real CSV", chess.Board(fen), path.read_bytes(), orientation, len(fields) == 6
 
 
 def evaluate(cases):
     groups = defaultdict(Counter)
     errors = Counter()
-    for label, board, data, orientation in cases:
+    for label, board, data, orientation, full_fen_known in cases:
         expected = {chess.square_name(key): piece.symbol() for key, piece in board.piece_map().items()}
-        result = detect_bytes(data, manual_orientation=orientation)
+        try:
+            result = detect_bytes(data, manual_orientation=orientation)
+        except HTTPException:
+            stats = Counter(boards=1, failed=1, full_fen_labels=int(full_fen_known))
+            for square in chess.SQUARE_NAMES:
+                target = expected.get(square, ".")
+                stats[f"total:{target}"] += 1
+                errors[(target, "no prediction")] += 1
+            groups[label].update(stats)
+            continue
         stats = Counter(boards=1, placements=int(result.piece_placement_field == board.board_fen()),
-                        full=int(result.fen == board.fen(en_passant="fen")), valid=int(result.fen_valid))
+                        full_fen_labels=int(full_fen_known),
+                        full=int(full_fen_known and result.fen == board.fen(en_passant="fen")), valid=int(result.fen_valid))
         for square in result.squares:
             symbol = square.piece
             actual = (symbol[1] if symbol[0] == "w" else symbol[1].lower()) if symbol else "."
             target = expected.get(square.square, ".")
+            stats[f"total:{target}"] += 1
+            stats[f"correct:{target}"] += int(actual == target)
             stats["correct"] += int(actual == target)
             stats["flagged"] += int(square.needs_review)
             if actual != target:
@@ -103,7 +122,7 @@ def evaluate(cases):
     return groups, errors
 
 
-def report(groups, errors, synthetic):
+def report(groups, errors, synthetic, cross_theme=False, per_size=9):
     total = sum(groups.values(), Counter())
     pct = lambda n, d: f"{100*n/d:.2f}%" if d else "—"
     header = "Synthetic" if synthetic else "Real CSV"
@@ -112,7 +131,9 @@ def report(groups, errors, synthetic):
         "The synthetic set measures rendered boards with known sprites and supplied orientation; it does not establish real screenshot accuracy."
         if synthetic else "Real results describe only the images in the supplied manifest.",
         "",
-        f"Synthetic settings: seed {SEED}, board sizes {', '.join(map(str, SIZES))} px before slight scaling, JPEG quality 72–94, four piece/board pairs."
+        f"Synthetic settings: seed {SEED}, board sizes {', '.join(map(str, SIZES))} px before slight scaling, JPEG quality 72–94, "
+        + (f"{len(SPRITE_THEMES)} piece sets mixed with {len(EXTRA_BOARDS)} board textures." if cross_theme
+           else f"{len(SPRITE_THEMES)} piece/board pairs.")
         if synthetic else "The optional CSV orientation column overrides OCR; omitted values use the normal detection path.",
         "",
         "| Set / board px | Boards | Per-square | Exact placement | Exact full FEN | Valid FEN |",
@@ -121,18 +142,34 @@ def report(groups, errors, synthetic):
     for label, stats in [*groups.items(), ("Overall", total)]:
         n = stats["boards"]
         lines.append(f"| {label} | {n} | {pct(stats['correct'], n*64)} | {pct(stats['placements'], n)} | "
-                     f"{pct(stats['full'], n)} | {pct(stats['valid'], n)} |")
+                     f"{pct(stats['full'], stats['full_fen_labels'])} | {pct(stats['valid'], n)} |")
     lines += [
-        "", "Per-square includes empty squares. Exact placement compares all 64 squares. Exact full FEN compares all six fields to the true game state; a still image cannot recover clocks, en passant, the turn, or historical castling rights.",
+        "", "Per-square includes empty squares. Exact placement compares all 64 squares. Exact full FEN uses only cases with six-field ground truth. A still image cannot establish clocks, en passant, the turn, or historical castling rights.",
         f"Review flags marked {total['flagged']} squares and covered {total['flagged_errors']} of {sum(errors.values())} wrong squares.",
-        "", "Top confusions (uppercase White, lowercase Black, dot means empty):", "",
+        f"Review-flag coverage was {pct(total['flagged_errors'], sum(errors.values()))}. "
+        f"Decoded boards needed {sum(n for (_, actual), n in errors.items() if actual != 'no prediction')} square corrections. "
+        f"{total['failed']} boards produced no prediction and require a new scan or manual entry.",
+        "", "Per-piece accuracy (uppercase White, lowercase Black, dot means empty). Scan failures count as misses.", "",
+        "| Expected | Squares | Correct | Accuracy |", "| --- | ---: | ---: | ---: |",
+    ]
+    for symbol in "KQRBNPkqrbnp.":
+        n, correct = total[f"total:{symbol}"], total[f"correct:{symbol}"]
+        lines.append(f"| {symbol} | {n} | {correct} | {pct(correct, n)} |")
+    lines += [
+        "", "Top confusions:", "",
         "| Expected | Predicted | Count |", "| --- | --- | ---: |",
     ]
     lines.extend(f"| {a} | {b} | {n} |" for (a, b), n in errors.most_common(10))
     if not errors:
         lines.append("| — | — | 0 |")
-    lines += ["", "Reproduce from vision-engine/:", "",
-              "    python tests/eval/evaluate.py --output ../docs/VISION_EVAL.md", ""]
+    command = "python tests/eval/evaluate.py"
+    if not synthetic:
+        command += " --manifest tests/eval/manifest.csv --images tests/eval/images"
+    elif cross_theme:
+        command += " --cross-theme"
+    if synthetic and per_size != 9:
+        command += f" --per-size {per_size}"
+    lines += ["", "Reproduce from vision-engine/:", "", f"    {command}", ""]
     return "\n".join(lines)
 
 
@@ -141,17 +178,31 @@ def main():
     parser.add_argument("--manifest", type=Path, help="CSV with image, expected_fen and optional orientation")
     parser.add_argument("--images", type=Path, default=Path(__file__).parent / "images")
     parser.add_argument("--per-size", type=int, default=9)
+    parser.add_argument("--cross-theme", action="store_true", help="Mix piece sets with varied board textures")
+    parser.add_argument("--min-theme-square-accuracy", type=float, help="Fail if any set's square accuracy falls below this fraction")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.per_size < 1:
         parser.error("--per-size must be positive")
+    if args.manifest and (not args.manifest.is_file() or not args.images.is_dir()):
+        parser.error("Real evaluation requires an existing CSV manifest and image directory.")
+    if args.min_theme_square_accuracy is not None and not 0 < args.min_theme_square_accuracy <= 1:
+        parser.error("--min-theme-square-accuracy must be between zero and one")
     cv2.setNumThreads(1)
-    cases = real_cases(args.manifest, args.images) if args.manifest else synthetic_cases(args.per_size)
+    cases = real_cases(args.manifest, args.images) if args.manifest else synthetic_cases(args.per_size, args.cross_theme)
     groups, errors = evaluate(cases)
-    markdown = report(groups, errors, synthetic=not args.manifest)
+    markdown = report(groups, errors, synthetic=not args.manifest, cross_theme=args.cross_theme, per_size=args.per_size)
     if args.output:
         args.output.write_text(markdown, encoding="utf-8")
     print(markdown)
+    if args.min_theme_square_accuracy is not None:
+        by_theme = defaultdict(Counter)
+        for label, stats in groups.items():
+            by_theme[label.split("/")[0]].update(stats)
+        failed = [label for label, stats in by_theme.items()
+                  if stats["correct"] / (64 * stats["boards"]) < args.min_theme_square_accuracy]
+        if failed:
+            raise SystemExit("Accuracy below threshold for: " + ", ".join(failed))
 
 
 if __name__ == "__main__":

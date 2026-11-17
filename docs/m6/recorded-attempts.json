@@ -1,0 +1,26 @@
+[
+  {
+    "viewport": 390,
+    "alternateMove": "d2d4",
+    "savedMove": "e2e4",
+    "centipawnLoss": 35,
+    "correct": true,
+    "usedHint": true,
+    "suggestedRating": "Hard",
+    "chosenRating": "Easy",
+    "attemptsRecorded": 5,
+    "interruptedWriteRetried": true
+  },
+  {
+    "viewport": 1280,
+    "alternateMove": "d2d4",
+    "savedMove": "e2e4",
+    "centipawnLoss": 35,
+    "correct": true,
+    "usedHint": true,
+    "suggestedRating": "Hard",
+    "chosenRating": "Easy",
+    "attemptsRecorded": 5,
+    "interruptedWriteRetried": false
+  }
+]

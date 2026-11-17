@@ -6,7 +6,7 @@ function annotation(move) {
   return null;
 }
 
-export function MoveLedger({ moves, ply = moves.length, onSelect, comments }) {
+export function MoveLedger({ moves, ply = moves.length, onSelect, comments, heading: Heading = 'h3' }) {
   const rows = new Map();
   for (const [index, move] of moves.entries()) {
     const number = move.before.split(' ')[5];
@@ -19,7 +19,7 @@ export function MoveLedger({ moves, ply = moves.length, onSelect, comments }) {
     if (!entry) return <span />;
     const { move, index } = entry;
     const note = annotation(move);
-    const text = <>{move.san}{note && <span className="ml-1.5 text-[0.65rem] text-accent">{note}</span>}</>;
+    const text = <>{move.san}{note && <span className="ml-1.5 text-xs text-accent">{note}</span>}</>;
     return onSelect
       ? <button type="button" aria-current={ply === index ? 'step' : undefined} onClick={() => onSelect(index)}>{text}</button>
       : <span>{text}</span>;
@@ -29,7 +29,7 @@ export function MoveLedger({ moves, ply = moves.length, onSelect, comments }) {
   return (
     <section aria-label="Move list">
       <div className="flex items-center justify-between px-3 py-2">
-        <h3 className="text-sm font-semibold">Move list</h3>
+        <Heading className="text-sm font-semibold">Move list</Heading>
         <span className="font-mono text-xs text-slate-500">{moves.length} {moves.length === 1 ? 'half-move' : 'half-moves'}</span>
       </div>
       <div className="move-ledger font-mono text-xs">

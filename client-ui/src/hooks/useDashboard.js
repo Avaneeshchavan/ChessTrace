@@ -1,3 +1,4 @@
+import { fetchService } from '../config/serviceRequest';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config/api';
@@ -21,7 +22,7 @@ export function useDashboard() {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/dashboard/summary`, {
+        const res = await fetchService(API_BASE_URL, `/api/dashboard/summary`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -51,7 +52,7 @@ export function useDashboard() {
   const logActivity = async (type, metadata = {}) => {
     if (!token) return;
     try {
-      await fetch(`${API_BASE_URL}/api/dashboard/activity`, {
+      await fetchService(API_BASE_URL, `/api/dashboard/activity`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

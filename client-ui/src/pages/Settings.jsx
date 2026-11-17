@@ -1,9 +1,12 @@
+import { fetchService } from '../config/serviceRequest';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config/api';
 import { validatePassword } from '../utils/validation';
 import { Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useServiceHealth } from '../hooks/useServiceHealth';
+import { DeleteAccount } from '../components/DeleteAccount';
 
 export default function Settings() {
   const { token, user, updateUser, logout } = useAuth();
@@ -32,7 +35,7 @@ export default function Settings() {
     async function fetchSummary() {
       if (status !== 'awake') return;
       try {
-        const res = await fetch(`${API_BASE_URL}/api/users/me/summary`, {
+        const res = await fetchService(API_BASE_URL, `/api/users/me/summary`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
         if (res.status === 401) {
@@ -68,7 +71,7 @@ export default function Settings() {
     setSavingName(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/users/me`, {
+      const res = await fetchService(API_BASE_URL, `/api/users/me`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +117,7 @@ export default function Settings() {
     setSavingPassword(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/users/me/password`, {
+      const res = await fetchService(API_BASE_URL, `/api/users/me/password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,11 +150,8 @@ export default function Settings() {
     }
   };
 
-  // Helper to get fallback name
-  const displayFallback = user?.displayName || user?.email.split('@')[0];
-
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <main className="min-h-dvh bg-slate-50 p-4 sm:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold text-slate-900 mb-6">Settings</h1>
 
@@ -161,9 +161,12 @@ export default function Settings() {
             <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
               <div className="animate-pulse font-medium">Waiting for servers to wake up...</div>
             </div>
+          ) : status === 'error' ? (
+            <p role="alert" className="text-sm text-red-700">The account service is unavailable. Use Retry above to reconnect.</p>
           ) : loadingSummary ? (
-            <div className="flex justify-center p-4">
-              <Loader2 size={24} className="text-[var(--ct-accent)] animate-spin" />
+            <div className="flex justify-center p-4" role="status">
+              <Loader2 size={24} className="text-[var(--ct-accent)] animate-spin" aria-hidden="true" />
+              <span className="sr-only">Loading account summary…</span>
             </div>
           ) : summaryError ? (
             <div className="text-red-500 text-sm">{summaryError}</div>
@@ -172,7 +175,7 @@ export default function Settings() {
               <h2 className="text-xl font-bold text-slate-900">{summary.displayName || summary.email.split('@')[0]}</h2>
               <p className="text-slate-500 text-sm mb-4">{summary.email}</p>
               
-              <div className="flex items-center gap-4 text-sm text-slate-600">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
                 <span className="font-medium bg-slate-100 px-3 py-1 rounded-md">
                   Member since {new Date(summary.memberSince).toLocaleDateString()}
                 </span>
@@ -292,8 +295,12 @@ export default function Settings() {
             </div>
           </form>
         </div>
-
+        <DeleteAccount token={token} logout={logout} />
+        <nav className="flex flex-wrap gap-3" aria-label="ChessTrace information">
+          <Link className="ct-quiet" to="/about">About and credits</Link>
+          <Link className="ct-quiet" to="/privacy">Privacy</Link>
+        </nav>
       </div>
-    </div>
+    </main>
   );
 }

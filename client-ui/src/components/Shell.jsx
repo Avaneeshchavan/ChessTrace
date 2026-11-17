@@ -1,26 +1,52 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Eye, Grid3x3, Home, LogOut, Menu, Settings, TrendingUp, X, Zap } from 'lucide-react';
+import { Ellipsis, Eye, GitCompare, Grid3x3, Home, LogOut, Menu, Settings, TrendingUp, UserRound, X, Zap } from 'lucide-react';
 import ChessTraceLogo from './ChessTraceLogo';
 import { useAuth } from '../context/AuthContext';
-import { useServiceHealth } from '../hooks/useServiceHealth';
+import ServiceHealthBanner from './ServiceHealthBanner';
 import { API_BASE_URL } from '../config/api';
+import { useOnline } from '../hooks/useOnline';
 
 const navItems = [
   ['/dashboard', 'Dashboard', Home],
   ['/lens', 'Origin Lens', Eye],
   ['/sandbox', 'Sandbox', Zap],
   ['/turning-points', 'Turning Points', TrendingUp],
+  ['/twin-game', 'Twin Game', GitCompare],
   ['/vault', 'Pattern Vault', Grid3x3],
   ['/settings', 'Settings', Settings],
 ];
+const mobileItems = [
+  ['/lens', 'Lens', Eye],
+  ['/sandbox', 'Sandbox', Zap],
+  ['/vault', 'Vault', Grid3x3],
+  ['/settings', 'Profile', UserRound],
+];
 
 export function Shell() {
-  const { logout } = useAuth();
-  const { status } = useServiceHealth(API_BASE_URL);
+  const { logout, token } = useAuth();
+  const online = useOnline();
   const { pathname } = useLocation();
   const [menuPath, setMenuPath] = useState(null);
   const menuOpen = menuPath === pathname;
+  const sheet = useRef(null);
+  const main = useRef(null);
+  const visited = useRef(pathname);
+  const closeSheet = () => sheet.current?.close();
+
+  useEffect(() => {
+    const desktop = matchMedia('(min-width: 768px)');
+    const closeOnResize = event => { if (event.matches) closeSheet(); };
+    desktop.addEventListener('change', closeOnResize);
+    return () => desktop.removeEventListener('change', closeOnResize);
+  }, []);
+
+  useEffect(() => {
+    if (visited.current !== pathname) {
+      visited.current = pathname;
+      main.current?.focus();
+    }
+  }, [pathname]);
 
   return (
     <div className="study-shell">
@@ -40,13 +66,47 @@ export function Shell() {
               </NavLink>
             ))}
           </nav>
-          <button type="button" onClick={logout} className="study-logout"><LogOut size={17} aria-hidden="true" /> Sign out</button>
+          {token && <button type="button" onClick={logout} className="study-logout"><LogOut size={17} aria-hidden="true" /> Sign out</button>}
         </div>
       </aside>
-      <div className="study-content" id="study-main" tabIndex={-1}>
-        {status === 'waking' && <p role="status" className="study-health">Reconnecting to the game database…</p>}
-        <Outlet />
+      <div className="study-content" id="study-main" tabIndex={-1} ref={main}>
+        {online ? <ServiceHealthBanner url={API_BASE_URL} />
+          : <div className="study-health" role="status">You’re offline. <Link className="underline" to="/offline">See what’s available</Link></div>}
+        {online || pathname === '/sandbox' ? <Outlet /> : (
+          <main className="ct-workspace ct-offline-page">
+            <header className="ct-workspace-header">
+              <h1>ChessTrace is offline</h1>
+              <p>Reconnect to access the corpus and your account. You can still play moves in Sandbox.</p>
+            </header>
+            <Link className="ct-button" to="/sandbox">Open Sandbox</Link>
+          </main>
+        )}
       </div>
+      <nav className="study-tabs" aria-label="Mobile study navigation">
+        {mobileItems.map(([to, label, Icon]) => (
+          <NavLink key={to} to={to}><Icon size={20} aria-hidden="true" />{label}</NavLink>
+        ))}
+        <button type="button" aria-haspopup="dialog" aria-controls="study-more" onClick={() => sheet.current?.showModal()}>
+          <Ellipsis size={22} aria-hidden="true" /> More
+        </button>
+      </nav>
+      <dialog ref={sheet} className="study-sheet" id="study-more" aria-labelledby="study-more-title"
+        onClick={event => { if (event.target === event.currentTarget) closeSheet(); }}>
+        <div className="study-sheet-content">
+          <header>
+            <h2 id="study-more-title">More</h2>
+            <button type="button" className="study-sheet-close" onClick={closeSheet} aria-label="Close more menu"><X size={22} /></button>
+          </header>
+          <nav className="study-nav" aria-label="More study pages">
+            {navItems.filter(([to]) => !mobileItems.some(([tab]) => tab === to)).map(([to, label, Icon]) => (
+              <NavLink key={to} to={to} onClick={closeSheet}><Icon size={18} aria-hidden="true" />{label}</NavLink>
+            ))}
+          </nav>
+          {token && <button type="button" onClick={() => { closeSheet(); logout(); }} className="study-logout">
+            <LogOut size={18} aria-hidden="true" /> Sign out
+          </button>}
+        </div>
+      </dialog>
     </div>
   );
 }

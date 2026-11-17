@@ -1,0 +1,50 @@
+[
+  {
+    "id": "lichess-broadcast",
+    "name": "Lichess official broadcasts",
+    "url": "https://database.lichess.org/#broadcasts",
+    "permission": "Broadcast games are released under the Creative Commons Attribution-ShareAlike 4.0 license.",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "size": "July 2026: 24,535,400 bytes; August: 31,010,232 bytes; September: 18,414,369 bytes",
+    "type": "Tournament broadcasts, selected for over-the-board master games",
+    "filter": "Completed Standard games; both ratings meet profile; GM title on at least one side; explicit classical time control and Lichess broadcast provenance.",
+    "status": "approved",
+    "archives": [
+      "2026-07",
+      "2026-08",
+      "2026-09"
+    ]
+  },
+  {
+    "id": "lichess-rated",
+    "name": "Lichess rated Standard games",
+    "url": "https://database.lichess.org/#standard",
+    "permission": "Database exports are released under the Creative Commons CC0 license.",
+    "license": "CC0",
+    "size": "September 2026: 29.2 GB compressed",
+    "type": "Online",
+    "filter": "Future secondary coverage from rated Standard games, both players above profile rating floor.",
+    "status": "eligible after over-the-board corpus"
+  },
+  {
+    "id": "lichess-elite",
+    "name": "Lichess Elite Database (Nikonoel)",
+    "url": "https://database.nikonoel.fr/",
+    "permission": null,
+    "size": "Monthly ZIP archives",
+    "type": "Online",
+    "filter": "Publisher-selected high-rated games; prefer selecting directly from CC0 Lichess exports.",
+    "status": "do not ingest — needs confirmation"
+  },
+  {
+    "id": "caissabase",
+    "name": "Caissabase",
+    "url": "https://caissabase.co.uk/",
+    "permission": null,
+    "size": "4.02 million games, publisher reported",
+    "type": "Over-the-board",
+    "filter": "Verify redistribution of the combined archive and its inputs first.",
+    "status": "do not ingest — needs confirmation"
+  }
+]

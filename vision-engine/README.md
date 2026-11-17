@@ -17,13 +17,14 @@ curl --fail-with-body 'http://localhost:8000/detect?theme=auto' -F 'file=@your_s
 
 `POST /parse-screenshot` remains available as an alias. The multipart upload is limited to 8 MiB including form overhead and is processed in memory. The response includes `fen`, `fen_valid`, and 64 `squares` with algebraic keys, piece codes, match scores, and `needs_review` flags. Scores describe template fit and are not probabilities. Use the optional query parameter `manual_orientation=black_bottom` when OCR cannot infer orientation. Turn, castling, clocks and en passant are best-effort or placeholders.
 
-Auto mode scores the classic, neo_wood, neon and wood sprite sets against the squares' local background colors. The generated templates are checked in under `templates/` so the Render service can load them without reading sibling directories. To regenerate from the bundled assets:
+Auto mode ranks 35 bundled flat piece sets, then evaluates the closest candidates against each square’s local background. Weak template fits produce a review warning. Rendered 3D pieces and unseen custom sprites may require manual correction. The generated templates are checked in under `templates/` so the Render service can load them without reading sibling directories. To regenerate from the bundled assets:
 
 ```sh
 python -m scripts.generate_templates
+python -m scripts.generate_templates --strips-only
 ```
 
-The original glyph fixture themes remain available for compatibility. See [the classifier notes](EXPLANATION.md) and [measured results](../docs/VISION_EVAL.md).
+The original glyph fixture themes remain available for compatibility. See [the classifier notes](EXPLANATION.md) and [measured cross-theme results](../docs/m9/README.md).
 
 ```sh
 python tests/test_pipeline.py

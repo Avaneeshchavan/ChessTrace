@@ -28,6 +28,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
+      - run: npm test
       - run: npm run build
 
   api:
@@ -66,3 +67,18 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - run: python tests/test_pipeline.py
       - run: python -m unittest discover -s tests -p test_detect.py
+      - run: python tests/eval/evaluate.py --cross-theme --per-size 2 --min-theme-square-accuracy 0.98
+
+  release-gate:
+    if: github.event.repository.visibility == 'public'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --prefix client-ui
+      - run: npm run build --prefix client-ui
+      - run: node scripts/verify-deploy.mjs --offline

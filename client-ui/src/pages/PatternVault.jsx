@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { fetchService } from '../config/serviceRequest';
+import { useState, useEffect, useId } from 'react';
 import { Link } from 'react-router-dom';
 import { Filter, Loader2, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -7,15 +8,16 @@ import { API_BASE_URL } from '../config/api';
 import { MotifPicker } from '../components/Vault/MotifPicker';
 import { useServiceHealth } from '../hooks/useServiceHealth';
 
-function SolveRate({ weeks }) {
+function SolveRate({ weeks, title, detail, empty }) {
+  const heading = useId();
   const motifs = [...new Set(weeks.map(week => week.motif))].sort();
   const [filter, setFilter] = useState('');
   const motif = motifs.includes(filter) ? filter : motifs[0];
   const rows = weeks.filter(week => week.motif === motif);
   return (
-    <section className="mb-6 space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
-      <h2 className="font-semibold">Reported solve rate by motif</h2>
-      <p className="text-xs text-slate-600">Last 90 days, grouped by UTC week. Hard, Good and Easy count as solved.</p>
+    <section className="min-w-0 space-y-3 rounded-xl bg-white p-4 ring-1 ring-slate-200" aria-labelledby={heading}>
+      <h2 className="font-semibold" id={heading}>{title}</h2>
+      <p className="text-xs text-slate-600">{detail}</p>
       {rows.length ? <>
         <label className="text-sm">Motif{' '}
           <select value={motif} onChange={event => setFilter(event.target.value)} className="rounded border p-1">
@@ -33,7 +35,7 @@ function SolveRate({ weeks }) {
             </li>
           ))}
         </ul>
-      </> : <p className="text-sm text-slate-500">Review a tagged puzzle to see your progress here.</p>}
+      </> : <p className="text-sm text-slate-500">{empty}</p>}
     </section>
   );
 }
@@ -43,6 +45,7 @@ export default function PatternVault() {
   const [puzzles, setPuzzles] = useState([]);
   const [reviewCount, setReviewCount] = useState(0);
   const [weeks, setWeeks] = useState([]);
+  const [attemptWeeks, setAttemptWeeks] = useState([]);
   const [statsError, setStatsError] = useState('');
   const [edit, setEdit] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -58,9 +61,9 @@ export default function PatternVault() {
       if (status !== 'awake') return;
       try {
         const [vaultRes, reviewRes, statsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/vault`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }),
-          fetch(`${API_BASE_URL}/api/vault/review-queue`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${API_BASE_URL}/api/vault/review-stats`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
+          fetchService(API_BASE_URL, `/api/vault`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }),
+          fetchService(API_BASE_URL, `/api/vault/review-queue`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetchService(API_BASE_URL, `/api/vault/review-stats`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
         ]);
         
         if (vaultRes.status === 401 || reviewRes.status === 401) {
@@ -72,7 +75,9 @@ export default function PatternVault() {
         const vaultData = await vaultRes.json();
         setPuzzles(vaultData.puzzles);
         if (statsRes?.ok) {
-          setWeeks((await statsRes.json()).weeks);
+          const stats = await statsRes.json();
+          setWeeks(stats.weeks ?? []);
+          setAttemptWeeks(stats.attemptWeeks ?? []);
           setStatsError('');
         } else {
           setStatsError('Could not load review history.');
@@ -98,7 +103,7 @@ export default function PatternVault() {
     setSaving(true);
     setTagError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vault/${edit.id}/tags`, {
+      const response = await fetchService(API_BASE_URL, `/api/vault/${edit.id}/tags`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ tags: edit.tags }),
@@ -121,12 +126,12 @@ export default function PatternVault() {
   });
 
   return (
-    <div className="p-8">
+    <main className="p-4 sm:p-8">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900 mb-6">Pattern Vault</h1>
 
       {/* Review Banner */}
       {reviewCount > 0 && (
-        <div className="bg-[var(--ct-accent)]/10 border border-[var(--ct-accent)]/30 rounded-xl p-6 mb-8 flex items-center justify-between shadow-sm">
+        <div className="bg-[var(--ct-accent)]/10 border border-[var(--ct-accent)]/30 rounded-xl p-4 sm:p-6 mb-8 flex flex-wrap items-center justify-between gap-3 shadow-sm">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Spaced Repetition Review</h2>
             <p className="text-slate-600 text-sm mt-1">You have {reviewCount} puzzle{reviewCount !== 1 ? 's' : ''} queued for review.</p>
@@ -138,22 +143,33 @@ export default function PatternVault() {
       )}
 
       {statsError ? <p role="status" className="mb-4 text-sm text-red-700">{statsError}</p>
-        : !loading && !error && <SolveRate weeks={weeks} />}
+        : !loading && !error && (
+          <div className="vault-solve-rates">
+            <SolveRate weeks={attemptWeeks} title="Move-based solve rate by motif"
+              detail="Last 90 days by UTC week. Includes correct moves played with a hint."
+              empty="Play a move in a tagged puzzle to see your results." />
+            <SolveRate weeks={weeks} title="Self-rated solve rate by motif"
+              detail="Last 90 days by UTC week. Hard, Good and Easy count as solved."
+              empty="Rate a tagged puzzle to see your results." />
+          </div>
+        )}
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-4 mb-8 flex gap-4 items-center">
-        <Filter size={16} className="text-slate-400" />
+      {!loading && !error && status === 'awake' && (
+        <div className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 p-4 mb-8 flex gap-4 items-center">
+          <Filter size={16} className="text-slate-400" />
 
-        <select 
-          value={selectedMotif}
-          onChange={(e) => setSelectedMotif(e.target.value)}
-          className="px-3 py-2 text-sm ring-1 ring-slate-900/5 rounded-lg text-slate-900 bg-slate-50 hover:bg-white outline-none transition focus:ring-2 focus:ring-[var(--ct-accent)]"
-        >
-          {motifs.map((m) => (
-            <option key={m}>{m}</option>
-          ))}
-        </select>
-      </div>
+          <select aria-label="Filter by motif"
+            value={selectedMotif}
+            onChange={(e) => setSelectedMotif(e.target.value)}
+            className="px-3 py-2 text-sm ring-1 ring-slate-900/5 rounded-lg text-slate-900 bg-slate-50 hover:bg-white outline-none transition focus:ring-2 focus:ring-[var(--ct-accent)]"
+          >
+            {motifs.map((m) => (
+              <option key={m}>{m}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {status === 'waking' || status === 'checking' ? (
         <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
@@ -174,7 +190,7 @@ export default function PatternVault() {
           {filteredPuzzles.map((puzzle) => (
             <div key={puzzle.id} className="bg-white rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-shadow flex flex-col">
               <div className="w-full aspect-square overflow-hidden">
-                <Board fen={puzzle.fen} viewOnly orientation="white" />
+                <Board fen={puzzle.fen} viewOnly interactive={false} orientation="white" />
               </div>
               <div className="p-4 flex-1 flex flex-col">
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -199,13 +215,13 @@ export default function PatternVault() {
                   <div className="text-xs font-semibold px-2 py-1 rounded w-fit bg-[var(--ct-accent)] text-white mb-2">
                     {new Date(puzzle.nextReviewAt) <= new Date() ? 'Due now' : `Due ${new Date(puzzle.nextReviewAt).toLocaleDateString()}`}
                   </div>
-                  <div className="text-[10px] text-slate-400">Added {new Date(puzzle.createdAt).toLocaleDateString()}</div>
+                  <div className="text-xs text-slate-400">Added {new Date(puzzle.createdAt).toLocaleDateString()}</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </main>
   );
 }

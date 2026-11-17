@@ -42,7 +42,7 @@ from app.pipeline.fen_validate import validate_fen
 from app.pipeline.grid_slicing import THEME_GRID_CONFIGS, slice_board
 from app.pipeline.orientation import detect_orientation
 from app.pipeline.template_matching import get_matcher, needs_manual_review
-from app.pipeline.sprite_matching import SPRITE_THEMES, classify_board
+from app.pipeline.sprite_matching import SPRITE_THEMES, classify_board, prepare_board, shortlist_themes
 from app.schemas import BestEffortFields, ParseScreenshotResponse, SquareResult
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,7 +52,11 @@ app = FastAPI(
     description="Digital-chessboard-screenshot -> FEN. See EXPLANATION.md for scope and limitations.",
 )
 
-allowed_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+allowed_origins = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -71,11 +75,12 @@ def health_check():
 LEGACY_THEMES = list(THEME_GRID_CONFIGS)
 SUPPORTED_THEMES = [*SPRITE_THEMES, *LEGACY_THEMES]
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+REVIEW_THEME_FIT = 0.65
 
 
 def _run_theme(board_crop, theme):
     if theme in SPRITE_THEMES:
-        return classify_board(slice_board(board_crop, theme="chesscom_neo"), theme)
+        return classify_board(prepare_board(slice_board(board_crop, theme="chesscom_neo")), theme)
     squares = slice_board(board_crop, theme=theme)
     matcher = get_matcher(theme)
     classified = [[matcher.classify_square(square) for square in row] for row in squares]
@@ -90,7 +95,8 @@ def _pick_theme(board_crop, requested_theme):
         return requested_theme, classifications, score, False
 
     tiles = slice_board(board_crop, theme="chesscom_neo")
-    candidates = [(theme, *classify_board(tiles, theme)) for theme in SPRITE_THEMES]
+    prepared = prepare_board(tiles)
+    candidates = [(theme, *classify_board(prepared, theme)) for theme in shortlist_themes(tiles)]
     theme, classified, score = max(candidates, key=lambda candidate: candidate[2])
     if score < .38:
         # The two original glyph fixtures remain supported as a fallback.
@@ -188,11 +194,11 @@ def analyze_image(image: np.ndarray, theme="auto", manual_orientation=None):
             )
 
     theme_used, classifications, theme_score, theme_auto_detected = _pick_theme(board_crop, theme)
-    if theme_score < 0.5:
+    weak_sprite_fit = theme_used in SPRITE_THEMES and theme_score < REVIEW_THEME_FIT
+    if weak_sprite_fit:
         warnings.append(
-            f"Low average match confidence ({theme_score:.2f}) for theme '{theme_used}'. "
-            f"This screenshot may use a theme outside the supported set: {SUPPORTED_THEMES}. "
-            "Results should be treated as unreliable."
+            "The piece set could not be matched reliably. Check the highlighted squares or "
+            "retake the screenshot with a flat piece set and a clear board."
         )
 
     piece_grid = [[classifications[r][c].piece for c in range(8)] for r in range(8)]
@@ -205,7 +211,7 @@ def analyze_image(image: np.ndarray, theme="auto", manual_orientation=None):
         for c in range(8):
             cl = classifications[r][c]
             sq_name = _algebraic_square(r, c, orientation)
-            flagged = needs_manual_review(cl)
+            flagged = needs_manual_review(cl) or (weak_sprite_fit and (cl.piece is not None or cl.empty_std >= 12))
             square_results.append(
                 SquareResult(
                     square=sq_name,

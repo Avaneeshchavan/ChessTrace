@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "ChessTrace",
+  "short_name": "ChessTrace",
+  "description": "Trace, replay, and study chess positions.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#161411",
+  "theme_color": "#161411",
+  "icons": [
+    { "src": "/icons/chess-trace-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/chess-trace-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/chess-trace-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "share_target": {
+    "action": "/share-image",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        { "name": "image", "accept": ["image/png", "image/jpeg", "image/webp", ".png", ".jpg", ".jpeg", ".webp"] }
+      ]
+    }
+  }
+}

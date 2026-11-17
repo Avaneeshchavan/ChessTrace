@@ -45,7 +45,7 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 - PNG template sets: classic, neo_wood, neon and wood, using local square background matching.
 - `POST /detect` and `POST /parse-screenshot`: per-square scores and review flags, with bounded in-memory uploads. Both endpoint contract tests passed.
 - Headless Chrome: real upload, flagged-square correction, invalid-position guard, and explicit search with the corrected FEN verified. The search response was mocked for this UI test; live search was checked separately.
-- [VISION_EVAL.md](VISION_EVAL.md): 108 synthetic boards; 99.71% per square, 90.74% exact placement, 0% exact six-field FEN. Real screenshots are not yet evaluated.
+- [VISION_EVAL.md](VISION_EVAL.md): 108 synthetic boards; 99.71% per square, 90.74% exact placement, 0% exact six-field FEN. The later M8 follow-up covers the supplied real screenshots.
 
 
 ## B5 features
@@ -62,3 +62,42 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 - Origin Lens supports keyboard upload, piece correction, castling edits, distinct game results, and direct replay. The live browser check found the Anand–Bareev position and opened its stored game.
 - The production landing page scored 98 performance and 100 accessibility, best practices, and SEO in mobile Lighthouse. Chrome checked 390px navigation and board resizing with reduced motion enabled.
 - [UI captures and critique](ui/README.md) show the desktop and mobile states and document Astra’s ten ranked findings and the five applied changes.
+
+## M5 mobile and offline study
+
+- Mobile navigation uses bottom tabs, and Origin Lens includes a camera entry and a pinned next-square control. Sandbox supports touch drag, tap-to-move, and on-demand Stockfish analysis.
+- The installable app caches built app files and Stockfish assets for offline study. The app can receive gallery shares through an installed Android Chrome app. The production deployment was outside this verification.
+- [M5 verification and evidence](m5/README.md) records the viewport audit, Playwright workflows, Lighthouse scores, and device checks still pending.
+
+## M6 play the turning point
+
+- Due Vault puzzles support legal moves, two hints, promotion selection, and reveal. The browser WASM worker checks alternate moves. Rating suggestions use the existing SM-2 endpoint.
+- The additive Attempt migration supports retry-safe recording and weekly move-based solve rates by motif. The production Neon migration is pending.
+- [M6 verification](m6/README.md) records local API and browser results, screenshots, and the saved alternate-move evidence.
+
+## Sprint audit and M7 Twin Game
+
+| Prompt | Status at the M7 audit |
+| --- | --- |
+| M0 | Standing instructions are in `AGENTS.md`. |
+| M1 | Repository cleanup, workflow, and follow-up UI merged to main. See [M1 evidence](M1.md). |
+| M2 | Compact storage and compatibility implemented and measured locally. See [capacity evidence](CAPACITY_MVP.md). |
+| M3 | Ingest pipeline and resume checks implemented. The M7 read-only check found 777 compact games on Neon. Completion of the full staged corpus plan and its production resource measurements were not verified in M7. |
+| M4 | Production smoke tests passed during M4 and the Vercel API cutover. External monitoring remains pending in the [hosting log](HOSTING.md). |
+| M5 | Mobile pass and PWA implemented. The [M5 evidence](m5/README.md) records local measurements and remaining physical-device checks. |
+| M6 | Implemented and verified locally. The Neon migration log still lacked `0005_puzzle_attempts` during the M7 read-only check. |
+| M7 | Twin Game implemented and verified locally at 390px and 1280px. The final batched query was measured on both live Neon layouts. [M7 evidence](m7/README.md). |
+| M8 and M9 | Remaining sprint prompts. |
+
+## M8 product polish
+
+- Implemented the guest guided sample, count-aware search results, shared offline states, keyboard board controls, About and Privacy pages, and password-confirmed account deletion.
+- Verified against a disposable database, the local image scanner, and Chromium at 390px and 1280px. The sample's exact corpus matches and first replay were separately verified on Neon using read-only queries.
+- [M8 verification](m8/README.md) records browser evidence, corpus size, Lighthouse, and the synthetic evaluation. The [real screenshot follow-up](m8/vision-real.md) measured 15 Cases screenshots before and after adding the missing templates. See the M9 audit for production verification and rollout status.
+
+## M9 broader theme support and scale-up handoff
+
+- Origin Lens now compares 35 flat piece sets, shows a weak-match warning, and rejects invalid board positions. The scanner recovered all 15 supplied Cases screenshots. In a separate 210-board synthetic matrix across six textures, it recovered 200 exact positions and 99.88% of squares. CI checks every set against a 98% per-square threshold.
+- [Final audit](m9/README.md) records the client build, API and vision tests, read-only production checks, Lighthouse, dependency audit, and mobile and desktop captures.
+- [Scale-up runbook](SCALE_UP.md) and [free Oracle steps](CODEX_PROMPTS_ZERO_COST.md#2-provision-an-always-free-vm) document how to rehearse a larger PostgreSQL setup. The hosted scale path was not exercised.
+- The audit checked the existing deployment. The M9 scanner and UI still need rollout, the `0005_puzzle_attempts` migration remains pending on Neon, and hosted signup and puzzle writes were not measured.

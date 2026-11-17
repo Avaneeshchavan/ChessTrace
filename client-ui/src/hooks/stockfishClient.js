@@ -1,5 +1,5 @@
 export function createStockfishClient() {
-  const worker = new Worker('/stockfish/stockfish-worker.js');
+  const worker = new Worker('/stockfish/stockfish.wasm.js');
   let pending;
   let closed = false;
   let ready = false;
@@ -23,8 +23,7 @@ export function createStockfishClient() {
   worker.onerror = () => close(new Error('Stockfish could not start or stopped unexpectedly.'));
   worker.onmessage = ({ data }) => {
     if (typeof data !== 'string') return;
-    if (data === 'ct-worker-ready') worker.postMessage('uci');
-    else if (data === 'uciok') worker.postMessage('isready');
+    if (data === 'uciok') worker.postMessage('isready');
     else if (data === 'readyok') {
       ready = true;
       if (pending) start();
@@ -41,16 +40,21 @@ export function createStockfishClient() {
       settle(null, { ...pending.result, bestMove: data.split(/\s+/)[1] });
     }
   };
+  worker.postMessage('uci');
 
   function start() {
     worker.postMessage(`position fen ${pending.fen}`);
-    worker.postMessage(`go depth ${pending.depth}`);
+    const restriction = pending.searchMove ? ` searchmoves ${pending.searchMove}` : '';
+    worker.postMessage(`go depth ${pending.depth}${restriction}`);
   }
 
-  function analyze(fen, depth, onInfo) {
+  function analyze(fen, depth, onInfo, { searchMove } = {}) {
     if (closed || pending) return Promise.reject(new Error('Stockfish is unavailable.'));
+    if (searchMove && !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(searchMove)) {
+      return Promise.reject(new Error('Invalid search move.'));
+    }
     return new Promise((resolve, reject) => {
-      pending = { fen, depth, onInfo, resolve, reject };
+      pending = { fen, depth, onInfo, searchMove, resolve, reject };
       timer = setTimeout(() => close(new Error('Stockfish timed out. Try a lower depth.')), 120_000);
       if (ready) start();
     });

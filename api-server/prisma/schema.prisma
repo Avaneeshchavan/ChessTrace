@@ -43,6 +43,7 @@ model Game {
   pgn        String     @db.Text // full original PGN text, kept verbatim for display/replay
 
   positions  Position[]
+  compact    CompactGame?
 
   createdAt  DateTime   @default(now())
 
@@ -92,6 +93,7 @@ model User {
   updatedAt    DateTime      @updatedAt
   savedPuzzles SavedPuzzle[]
   activityLogs ActivityLog[]
+  attempts     Attempt[]
 }
 
 model SavedPuzzle {
@@ -101,6 +103,7 @@ model SavedPuzzle {
   fen             String
   initialMove     String?
   solutionPgn     String?
+  mateIn          Int?
   reviewStatus    String   @default("DUE_TODAY") // DUE_TODAY, LEARNING, MASTERED
   easeFactor      Float    @default(2.5)
   intervalDays    Int      @default(0)
@@ -110,8 +113,27 @@ model SavedPuzzle {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   tags            Tag[]    @relation("PuzzleTags")
+  attempts        Attempt[]
 
   @@index([userId, nextReviewAt])
+}
+
+model Attempt {
+  id        String      @id @default(uuid())
+  puzzleId  String
+  puzzle    SavedPuzzle @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moveUci   String
+  correct   Boolean
+  usedHint  Boolean
+  evalLoss  Int?
+  millis    Int
+  motifs    String[]
+  createdAt DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@index([puzzleId])
 }
 
 model Tag {
@@ -138,4 +160,72 @@ enum ActivityType {
   TURNING_POINTS_RUN
   PUZZLE_SAVED
   PUZZLE_REVIEWED
+}
+
+model CompactGame {
+  gameId  Int            @id @map("game_id")
+  game    Game           @relation(fields: [gameId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  pgnHash Bytes          @unique @map("pgn_hash")
+  pgnGzip Bytes?         @map("pgn_gzip")
+  opening String?
+  eco     String?
+  startFen String?       @map("start_fen")
+  positions PositionGame[]
+  movetextHash Bytes? @unique @map("movetext_hash")
+  sourceId String? @map("source_id")
+
+  @@map("compact_game")
+}
+
+model CompactPosition {
+  key        BigInt                    @id
+  fenCore    String                    @map("fen_core") @db.VarChar(90)
+  gamesCount BigInt                    @map("games_count")
+  vector     Unsupported("halfvec(32)")?
+  games      PositionGame[]
+
+  @@map("position_v2")
+}
+
+model PositionGame {
+  key      BigInt
+  position CompactPosition @relation(fields: [key], references: [key], onDelete: Cascade, onUpdate: NoAction)
+  gameId   Int             @map("game_id")
+  game     CompactGame     @relation(fields: [gameId], references: [gameId], onDelete: Restrict, onUpdate: NoAction)
+  ply      Int             @db.SmallInt
+
+  @@id([key, gameId])
+  @@map("position_game")
+}
+
+
+model CorpusGameStage {
+  hash String?
+  whiteName String?
+  blackName String?
+  whiteElo Int?
+  blackElo Int?
+  playedAt DateTime?
+  event String?
+  result String?
+  pgn String?
+  gzip String?
+  opening String?
+  eco String?
+  startFen String?
+  originalHash String?
+
+  @@ignore
+  @@map("corpus_game_stage")
+}
+
+model CorpusPositionStage {
+  key BigInt?
+  gameId Int?
+  ply Int? @db.SmallInt
+  fenCore String?
+  vector String?
+
+  @@ignore
+  @@map("corpus_position_stage")
 }

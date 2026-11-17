@@ -1,0 +1,723 @@
+[
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": [
+      "A study room for chess",
+      "Interactive game preview",
+      "Paris, 1858",
+      "Duke of Brunswick & Count Isouard",
+      "Paul Morphy"
+    ]
+  },
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/auth",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/auth?mode=register",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/dashboard",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/lens",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/sandbox",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [
+      "text",
+      "All years2020s2010s2000s1990s1980s1970s1960s1950s1940s1930s1920s1910s1900s1",
+      "Find similar positions"
+    ],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/turning-points",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [
+      "number",
+      "Analyze"
+    ],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/vault",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [
+      "All",
+      "Edit motifs"
+    ],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/vault/review",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 390,
+    "path": "/settings",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [
+      "displayName",
+      "Save",
+      "currentPassword",
+      "newPassword",
+      "confirmPassword",
+      "Update Password"
+    ],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": [
+      "A study room for chess",
+      "Interactive game preview",
+      "Paris, 1858",
+      "Duke of Brunswick & Count Isouard",
+      "Paul Morphy"
+    ]
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/auth",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/auth?mode=register",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/dashboard",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/lens",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/sandbox",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [
+      "text",
+      "All years2020s2010s2000s1990s1980s1970s1960s1950s1940s1930s1920s1910s1900s1",
+      "Find similar positions"
+    ],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/turning-points",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [
+      "number",
+      "Analyze"
+    ],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/vault",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [
+      "All",
+      "Edit motifs"
+    ],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/vault/review",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "before",
+    "width": 1280,
+    "path": "/settings",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [
+      "displayName",
+      "Save",
+      "currentPassword",
+      "newPassword",
+      "confirmPassword",
+      "Update Password"
+    ],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/auth",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/auth?mode=register",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/dashboard",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/lens",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/sandbox",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/turning-points",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/vault",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/vault/review",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/settings",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 360,
+    "path": "/offline",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/auth",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/auth?mode=register",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/dashboard",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/lens",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/sandbox",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/turning-points",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/vault",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/vault/review",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/settings",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "path": "/offline",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/auth",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/auth?mode=register",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/dashboard",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/lens",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/sandbox",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/turning-points",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/vault",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/vault/review",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/settings",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 412,
+    "path": "/offline",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/auth",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/auth?mode=register",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/dashboard",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/lens",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/sandbox",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/turning-points",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/vault",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/vault/review",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/settings",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 768,
+    "path": "/offline",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/auth",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/auth?mode=register",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/dashboard",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/lens",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/sandbox",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/turning-points",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/vault",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/vault/review",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/settings",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  },
+  {
+    "phase": "after",
+    "width": 1280,
+    "path": "/offline",
+    "overflow": 0,
+    "boardsOutside": 0,
+    "undersized": [],
+    "smallText": []
+  }
+]
