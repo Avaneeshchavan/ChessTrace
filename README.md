@@ -10,7 +10,7 @@ ChessTrace is a chess study app that connects a position on your screen to games
 
 ## What you can do
 
-- **Origin Lens** reconstructs a board from a screenshot and flags squares that need review. You can correct pieces, orientation, side to move, and castling rights before searching.
+- **Origin Lens** reconstructs a board from a screenshot, compares 35 flat piece sets, and flags squares that need review. You can correct pieces, orientation, side to move, and castling rights before searching.
 - **Sandbox** lets you play legal moves from a FEN, analyze the position with Stockfish, and find similar positions. Filter results by opening or decade and replay a matched game from its matching move.
 - **Turning Points** accepts a Lichess game link, a completed Chess.com game, or pasted PGN. It analyzes the moves in a browser worker and surfaces up to three of the largest evaluation drops as puzzles.
 - **Twin Game** compares your opening with the corpus and replays the closest match from the shared position.
@@ -87,9 +87,9 @@ Use Node.js 22.12 or newer, Python with virtual environment support, and a Postg
 | Area | Result |
 | --- | --- |
 | Search benchmark | On a temporary Neon corpus of 1,000 games and 79,855 positions, PostgreSQL execution p95 was **0.500 ms exact** and **0.449 ms approximate** across 1,000 lookups. These timings exclude the network and API. |
-| Board recognition | After adding Cases support, the detector recovered **15 of 15 exact piece placements** on the same supplied screenshot batch that exposed the missing piece set. [Scope and before/after results](docs/m8/vision-real.md). |
-| Landing and Settings | See the [M8 Lighthouse results](docs/m8/README.md) for the current local build and test scope. |
+| Board recognition | The scanner recovered **15 of 15** exact piece placements on the supplied Cases batch and **200 of 210** on a synthetic matrix of 35 flat piece sets across six board textures. [Results and scope](docs/m9/README.md). |
+| Landing and Settings | See the [M9 Lighthouse results](docs/m9/README.md#final-audit) for production and local scores. |
 
 Run `npm test` in `api-server/`, `npm run build` in `client-ui/`, and `python tests/test_pipeline.py` plus `python tests/test_detect.py` in `vision-engine/`.
 
-See the [benchmark methodology](docs/BENCHMARKS.md), [vision evaluation](docs/VISION_EVAL.md), [UI screenshots](docs/ui/README.md), and [project status](docs/STATUS.md) for more detail.
+See the [benchmark methodology](docs/BENCHMARKS.md), [vision evaluation](docs/VISION_EVAL.md), [UI screenshots](docs/ui/README.md), [project status](docs/STATUS.md), and [scale-up runbook](docs/SCALE_UP.md) for more detail.

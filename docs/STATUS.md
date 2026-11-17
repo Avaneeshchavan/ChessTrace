@@ -93,4 +93,11 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 
 - Implemented the guest guided sample, count-aware search results, shared offline states, keyboard board controls, About and Privacy pages, and password-confirmed account deletion.
 - Verified against a disposable database, the local image scanner, and Chromium at 390px and 1280px. The sample's exact corpus matches and first replay were separately verified on Neon using read-only queries.
-- [M8 verification](m8/README.md) records browser evidence, corpus size, Lighthouse, and the synthetic evaluation. The [real screenshot follow-up](m8/vision-real.md) measured 15 Cases screenshots before and after adding the missing templates. Production rollout and M9 are pending.
+- [M8 verification](m8/README.md) records browser evidence, corpus size, Lighthouse, and the synthetic evaluation. The [real screenshot follow-up](m8/vision-real.md) measured 15 Cases screenshots before and after adding the missing templates. See the M9 audit for production verification and rollout status.
+
+## M9 broader theme support and scale-up handoff
+
+- Origin Lens now compares 35 flat piece sets, shows a weak-match warning, and rejects invalid board positions. The scanner recovered all 15 supplied Cases screenshots. In a separate 210-board synthetic matrix across six textures, it recovered 200 exact positions and 99.88% of squares. CI checks every set against a 98% per-square threshold.
+- [Final audit](m9/README.md) records the client build, API and vision tests, read-only production checks, Lighthouse, dependency audit, and mobile and desktop captures.
+- [Scale-up runbook](SCALE_UP.md) and [free Oracle steps](CODEX_PROMPTS_ZERO_COST.md#2-provision-an-always-free-vm) document how to rehearse a larger PostgreSQL setup. The hosted scale path was not exercised.
+- The audit checked the existing deployment. The M9 scanner and UI still need rollout, the `0005_puzzle_attempts` migration remains pending on Neon, and hosted signup and puzzle writes were not measured.

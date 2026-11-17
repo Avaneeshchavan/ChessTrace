@@ -103,6 +103,11 @@ async function main() {
   assert.ok(detected.fen);
   console.log('PASS synthetic screenshot parse');
 
+  if (process.env.VERIFY_READ_ONLY === '1') {
+    console.log('SKIP account and vault writes (VERIFY_READ_ONLY=1)');
+    return;
+  }
+
   const credentials = { email: `deploy-${randomUUID()}@example.invalid`, password: randomUUID() + 'aA1!' };
   const registered = await json(api, '/api/auth/register', { method: 'POST', body: {
     ...credentials, displayName: 'Deployment probe',

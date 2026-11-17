@@ -1,0 +1,12 @@
+PASS deep link /lens
+PASS deep link /vault
+PASS Stockfish WASM MIME and caching
+PASS API health
+PASS vision health
+PASS preflight /api/vault
+PASS preflight /parse-screenshot
+PASS exact search
+PASS similarity search
+PASS replay fetch
+PASS synthetic screenshot parse
+SKIP account and vault writes (VERIFY_READ_ONLY=1)
