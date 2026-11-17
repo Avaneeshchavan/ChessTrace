@@ -60,3 +60,9 @@ Before switching the frontend, test the new API against the existing Neon databa
 Vercel Hobby includes “4 hours” of active CPU, “360 GB-hrs” of provisioned memory and “1 million” invocations per month. Vercel Functions may still cold-start. Neon Free compute also resumes on the first database query after inactivity. [Vercel Fluid compute pricing](https://vercel.com/docs/functions/usage-and-pricing) · [Vercel Functions](https://vercel.com/docs/functions) · [Neon pricing](https://neon.com/pricing)
 
 Before switching the frontend, the November 12, 2026 verifier passed against the Vercel API, Neon, and the existing Render scanner. It covered signup and login, exact and similarity search, replay, a 64-square synthetic screenshot, saved puzzles, and the due queue. Browser timing against the public frontend is a separate post-cutover check.
+
+## Production source branch
+
+Use `main` as the production branch in both Vercel projects. In each dashboard project (`chesstrace` and `chesstrace-express`), open **Settings → Environments → Production** and set the branch tracking rule to `main`. If a project has no Git repository connected, use **Settings → Git** to connect the ChessTrace repository first and check the project root (`client-ui` for the frontend, `api-server` for a repository-linked API). Review pending Git deployments before changing the rule. [Vercel Git deployments](https://vercel.com/docs/git)
+
+Render vision uses manual releases and the last verified live commit in the release handoff is `05face9`. Its linked M4 branch is historical. Use **Manual Deploy → Deploy a specific commit** for reviewed vision changes. See the [release checklist](RELEASE_PROCESS.md).

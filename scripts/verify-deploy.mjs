@@ -14,7 +14,29 @@ function origin(value) {
   return url.origin;
 }
 
+async function verifyOffline() {
+  const read = path => readFile(new URL('../client-ui/' + path, import.meta.url));
+  const config = JSON.parse(await read('vercel.json'));
+  const html = (await read('dist/index.html')).toString();
+  assert.match(html, /id="root"/);
+  for (const path of ['/lens', '/vault']) {
+    assert.ok(config.rewrites.some(({ source, destination }) =>
+      new RegExp('^' + source + '$').test(path) && destination === '/index.html'), path);
+    console.log(`PASS offline deep-link rewrite ${path}`);
+  }
+  const header = (source, key) => config.headers.find(rule => rule.source === source)
+    ?.headers.find(rule => rule.key.toLowerCase() === key)?.value || '';
+  assert.match(header('/stockfish/stockfish.wasm', 'content-type'), /^application\/wasm\b/);
+  assert.match(header('/stockfish/:file*', 'cache-control'), /max-age=[1-9]/);
+  assert.deepEqual((await read('dist/stockfish/stockfish.wasm')).subarray(0, 4), Buffer.from([0, 97, 115, 109]));
+  console.log('PASS offline Stockfish binary, MIME and caching configuration');
+  assert.deepEqual((await read('dist/synthetic_chesscom_neo.png')).subarray(0, 8),
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  console.log('PASS offline synthetic upload fixture');
+}
+
 async function main() {
+  if (process.argv[2] === '--offline') return verifyOffline();
   if (!process.argv[2] || !process.env.API_URL || !process.env.VISION_URL) {
     throw new Error('Usage: API_URL=<api origin> VISION_URL=<vision origin> node scripts/verify-deploy.mjs <frontend origin>');
   }
