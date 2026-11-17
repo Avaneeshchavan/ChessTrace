@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
 const output = process.env.R2_EVIDENCE || '/tmp/chesstrace-r2-evidence';
 const file = 'client-ui/public/product/guided-e4.png';
-const scanPath = 'http://localhost:8000/parse-screenshot';
+const scanPath = /\/parse-screenshot\?/;
 await mkdir(output, { recursive: true });
 const fixture = await startMobileFixture();
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH });
@@ -70,6 +70,7 @@ try {
     assert.equal(wakeRequests, 0);
     await capture('empty');
     await upload.setInputFiles(file);
+    await page.getByRole('button', { name: 'Looks right' }).click();
     await page.getByText(/Taking longer than usual \(3 s\)/).waitFor();
     await preview.waitFor();
     await capture('slow');
@@ -96,7 +97,7 @@ try {
     assert.equal(scanCount, 4);
     assert.equal(wakeRequests, 1);
     await context.setOffline(false);
-    await page.getByRole('link', { name: 'Set up the board manually' }).click();
+    await page.getByRole('link', { name: 'Set up the position by hand' }).click();
     await page.getByRole('heading', { name: 'Set up the position' }).waitFor();
     await page.getByRole('button', { name: 'e1: empty' }).click();
     await page.getByLabel('Piece on e1').selectOption('wK');

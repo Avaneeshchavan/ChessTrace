@@ -97,6 +97,7 @@ try {
     const b8 = page.getByRole('button', { name: /^b8: Black knight/ });
     assert.equal(await b8.evaluate(el => el === document.activeElement), true);
     await page.getByLabel(/Side to move/).selectOption('w');
+    await page.getByLabel('Confirm the game state for exact search').check();
     await page.getByRole('button', { name: 'Search this position' }).click();
     await page.getByText('No exact match found in 1 game.', { exact: false }).waitFor();
     await capture('empty-search');

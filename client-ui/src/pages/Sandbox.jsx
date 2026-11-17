@@ -1,6 +1,6 @@
 import { fetchService } from '../config/serviceRequest';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ScreenshotReview } from '../components/Board/ScreenshotReview';
 import { Chess, DEFAULT_POSITION } from 'chess.js';
@@ -11,10 +11,12 @@ import { EnginePanel } from '../components/EnginePanel/EnginePanel';
 import { useStockfish } from '../hooks/useStockfish';
 import { inspectSandboxFen } from '../utils/sandboxPosition';
 import { API_BASE_URL } from '../config/api';
+import { positionForManualSetup } from '../utils/screenshotPosition';
 import { useOnline } from '../hooks/useOnline';
 
 export default function Sandbox() {
   const [params] = useSearchParams();
+  const { state } = useLocation();
   const { token } = useAuth();
   const [manual, setManual] = useState(params.get('setup') === '1');
   const [fen, setFen] = useState(DEFAULT_POSITION);
@@ -79,7 +81,7 @@ export default function Sandbox() {
         <h1>Sandbox</h1>
         <p>Play through a position, compare matches, and explore the next move.</p>
       </header>
-      {manual ? <ScreenshotReview manual result={{ fen: '8/8/8/8/8/8/8/8 w - - 0 1', squares: [] }}
+      {manual ? <ScreenshotReview manual result={positionForManualSetup(state?.boardFen)}
         onSearch={value => { changeFen(value); setManual(false); }} /> :
       <div className="sandbox-layout">
         <section className="sandbox-board min-w-0 space-y-4">

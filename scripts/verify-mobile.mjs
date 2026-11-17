@@ -84,6 +84,7 @@ async function captureLayout(browser) {
           await capture(routeName(path));
           if (path === '/lens') {
             await page.getByLabel('Board screenshot').setInputFiles(image);
+            if (phase === 'after') await page.getByRole('button', { name: 'Looks right' }).click();
             await page.getByRole('button', { name: 'Review next square' }).waitFor();
             await capture('lens-review');
             if (phase === 'after' && width === 390) {
@@ -105,9 +106,11 @@ async function exerciseFlow(browser, device) {
   try {
     await page.goto(fixture.origin + '/lens');
     await page.getByLabel('Board screenshot').setInputFiles(image);
+    await page.getByRole('button', { name: 'Looks right' }).tap();
     await page.getByRole('button', { name: 'Review next square' }).tap();
     await page.getByRole('button', { name: 'Confirm square' }).tap();
     await page.getByText('No squares left to review').waitFor();
+    await page.getByLabel('Confirm the game state for exact search').check();
     await page.getByRole('button', { name: 'Search this position' }).tap();
     await page.getByRole('button', { name: 'Replay', exact: true }).tap();
     await page.getByRole('button', { name: 'Next move' }).tap();
@@ -188,6 +191,7 @@ async function verifyOffline(browser) {
   });
   await page.locator('form[action="/share-image"] input').setInputFiles(image);
   await page.evaluate(() => document.querySelector('form[action="/share-image"]').submit());
+  await page.getByRole('button', { name: 'Looks right' }).tap();
   await page.getByRole('button', { name: 'Review next square' }).waitFor();
   assert.equal(fixture.requests.filter(req => req.path === '/parse-screenshot').length, before + 1);
   assert.ok(!fixture.requests.some(req => req.path === '/share-image'), 'Share should be intercepted locally');

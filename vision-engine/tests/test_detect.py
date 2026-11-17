@@ -61,6 +61,30 @@ class DetectTest(unittest.TestCase):
                          {sq["square"] for sq in result["squares"] if sq["needs_review"]})
         self.assertEqual(asyncio.run(upload("/parse-screenshot", payload, query))[0], 200)
 
+    def test_locate_and_validate_confirmed_crop(self):
+        payload = (ROOT / "examples/synthetic_chesscom_neo.png").read_bytes()
+        status, located = asyncio.run(upload("/locate-board", payload))
+        self.assertEqual(status, 200)
+        self.assertNotIn("squares", located)
+        crop = located["crop"]
+        self.assertGreaterEqual(crop["size"], 64)
+        self.assertLessEqual(crop["x"] + crop["size"], located["width"])
+        self.assertLessEqual(crop["y"] + crop["size"], located["height"])
+        good = f"x={crop['x']}&y={crop['y']}&width={crop['size']}&height={crop['size']}".encode()
+        self.assertEqual(asyncio.run(upload("/parse-screenshot", payload, good))[0], 200)
+        for bad in (b"x=0", b"x=-1&y=0&width=64&height=64", b"x=0&y=0&width=63&height=63",
+                    b"x=0&y=0&width=64&height=65", b"x=1.5&y=0&width=64&height=64",
+                    f"x={located['width'] - 63}&y=0&width=64&height=64".encode()):
+            with self.subTest(bad=bad):
+                self.assertIn(asyncio.run(upload("/parse-screenshot", payload, bad))[0], (400, 422))
+
+    def test_centered_proposal_is_reported(self):
+        _, image = cv2.imencode(".png", np.full((160, 240, 3), 138, np.uint8))
+        status, located = asyncio.run(upload("/locate-board", image.tobytes()))
+        self.assertEqual(status, 200)
+        self.assertTrue(located["fallback"])
+        self.assertEqual(located["crop"], {"x": 40, "y": 0, "size": 160})
+
     def test_bad_image_and_upload_limit(self):
         self.assertEqual(asyncio.run(upload("/detect", b"not an image"))[0], 400)
         self.assertEqual(asyncio.run(upload("/detect", b"x" * MAX_UPLOAD_BYTES))[0], 413)

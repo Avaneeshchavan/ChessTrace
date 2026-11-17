@@ -43,6 +43,7 @@ export async function startMobileFixture({ dist = 'client-ui/dist', baseline, ap
     const routes = {
       'GET /health': { status: 'ok' },
       'POST /api/auth/login': { token: 'mobile-fixture', user },
+      'POST /locate-board': { width: 596, height: 572, crop: { x: 12, y: 0, size: 572 }, fallback: false },
       'POST /parse-screenshot': { fen, orientation: 'white_bottom', theme_match_confidence: .98, squares },
       'GET /api/search': { matchType: 'exact', matches: [{ id: 'match', gameId: game.id, halfMove: 1, game }] },
       'GET /api/search/games/fixture-game': { pgn },
@@ -63,7 +64,7 @@ export async function startMobileFixture({ dist = 'client-ui/dist', baseline, ap
     const root = resolve(directory);
     return async (req, res) => {
       const pathname = new URL(req.url, 'http://localhost').pathname;
-      if (pathname.startsWith('/api/') || pathname === '/parse-screenshot') return api(req, res);
+      if (pathname.startsWith('/api/') || ['/parse-screenshot', '/locate-board'].includes(pathname)) return api(req, res);
       if (pathname === '/share-image') requests.push({ path: pathname, method: req.method });
       if (req.method !== 'GET') { res.writeHead(405).end(); return; }
       if (pathname === '/fixture-session.html') { res.writeHead(200, { 'Content-Type': 'text/html' }).end('<!doctype html><title>Test session</title>'); return; }

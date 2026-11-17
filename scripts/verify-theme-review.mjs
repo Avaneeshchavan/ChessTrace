@@ -21,7 +21,7 @@ try {
       localStorage.setItem('token', 'fixture-token');
       localStorage.setItem('user', JSON.stringify(account));
     }, user);
-    await context.route('**/parse-screenshot', async route => {
+    await context.route(/\/parse-screenshot(?:\?|$)/, async route => {
       const response = await route.fetch();
       const parsed = await response.json();
       parsed.theme_match_confidence = .51;
@@ -31,6 +31,7 @@ try {
     const page = await context.newPage();
     await page.goto(fixture.origin + '/lens');
     await page.getByLabel('Board screenshot').setInputFiles(resolve('vision-engine/examples/synthetic_chesscom_neo.png'));
+    await page.getByRole('button', { name: 'Looks right' }).click();
     await page.getByText(/The piece set could not be matched reliably/).waitFor();
     await page.getByRole('button', { name: 'Review next square' }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0);

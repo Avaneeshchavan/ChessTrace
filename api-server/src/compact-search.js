@@ -1,3 +1,4 @@
+const { Prisma } = require('@prisma/client');
 const { gunzipSync } = require('node:zlib');
 const { positionKey, verifiesPosition, replayPositionDetails } = require('./compact-position');
 const { computeStructuralVector, toPgvectorLiteral } = require('./vector');
@@ -19,11 +20,12 @@ function verifiedRows(rows, project) {
 }
 
 async function findCompactExact(prisma, fenCore) {
+  const cores = Array.isArray(fenCore) ? fenCore : [fenCore];
   const rows = await prisma.$queryRaw`
     SELECT p.key, p.fen_core AS "fenCore", pg.ply AS "halfMove", g.*, cg.pgn_gzip
     FROM position_v2 p JOIN position_game pg USING (key)
     JOIN compact_game cg USING (game_id) JOIN "Game" g ON g.id = cg.game_id
-    WHERE p.key = ${positionKey(fenCore)} AND p.fen_core = ${fenCore}
+    WHERE p.key IN (${Prisma.join(cores.map(positionKey))}) AND p.fen_core IN (${Prisma.join(cores)})
     ORDER BY (g."whiteElo" + g."blackElo") DESC NULLS LAST, g."playedAt" DESC NULLS LAST, g.id
     LIMIT 100`;
   return verifiedRows(rows, ({ key, fenCore, halfMove, pgn_gzip, ...game }, pgn) => ({

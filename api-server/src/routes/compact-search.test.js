@@ -65,6 +65,7 @@ test('compact search ranks and caps distinct games, verifies replays and preserv
           return response.json();
         }
         const query = '?fen=' + encodeURIComponent(new Chess().move('Nf3').after);
+        const placementQuery = '/placement?placement=' + encodeURIComponent(fen.split(' ')[0]);
         const keys = object => Object.keys(object).sort();
 
         process.env.USE_COMPACT_STORAGE = 'false';
@@ -74,6 +75,9 @@ test('compact search ranks and caps distinct games, verifies replays and preserv
         assert.equal(original.matchingGameCount, 1);
         assert.equal(original.replayCount, 1);
         assert.equal(original.matches[0].nextMove, 'Nf6');
+        const broaderLegacy = await get(placementQuery);
+        assert.equal(broaderLegacy.matchType, 'placement');
+        assert.equal(broaderLegacy.matches[0].game.id, legacy.id);
 
         process.env.USE_COMPACT_STORAGE = 'true';
         const compact = await get(query);
@@ -81,6 +85,11 @@ test('compact search ranks and caps distinct games, verifies replays and preserv
         assert.equal(compact.matchType, 'exact');
         assert.equal(compact.matchingGameCount, 3);
         assert.equal(compact.replayCount, 2);
+        const broaderCompact = await get(placementQuery);
+        assert.equal(broaderCompact.matchType, 'placement');
+        assert.equal(broaderCompact.replayCount, 2);
+        assert.deepEqual(broaderCompact.matches.map(match => match.gameId), compact.matches.map(match => match.gameId));
+        await get('/placement?placement=8/8/8/8/8/8/8/8', 400);
         assert.equal(compact.fenCore, fen);
         assert.deepEqual(compact.matches.map(m => m.game.whiteName), ['Strong newer', 'Strong older']);
         for (const match of compact.matches) {
