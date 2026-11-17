@@ -30,8 +30,8 @@ function verifiesPosition(pgn, ply, expected, cache) {
 function replayPositionDetails(pgn, ply, cache) {
   const moves = replayMoves(pgn, cache);
   const current = moves[ply - 1];
-  if (!current) return {};
-  return { nextMove: moves[ply]?.san, positionMove: Number(current.before.split(' ')[5]) };
+  if (!current) return { nextMove: null, positionMove: null };
+  return { nextMove: moves[ply]?.san ?? null, positionMove: Number(current.before.split(' ')[5]) };
 }
 
 module.exports = { fenCore, positionKey, verifiesPosition, replayPositionDetails };
