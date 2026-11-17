@@ -272,7 +272,12 @@ export default function OriginLens({ sample = false }) {
 
           {visionResult && (
             <>
-              <p className="font-mono text-xs text-slate-500">Template match {confidence}% · {visionResult.orientation === 'black_bottom' ? 'Black' : 'White'} at bottom</p>
+              <p className="font-mono text-xs text-slate-500">
+                Template fit {confidence}% · {visionResult.orientation === 'black_bottom' ? 'Black' : 'White'} at bottom
+              </p>
+              {visionResult.warnings?.filter(warning => warning.startsWith('The piece set')).map(warning => (
+                <p key={warning} role="status" className="ct-panel p-3 text-sm text-amber-700">{warning}</p>
+              ))}
               <ScreenshotReview result={visionResult} searching={phase === 'searching'} offline={!online} onSearch={searchPosition} onEdit={clearSearch} />
             </>
           )}

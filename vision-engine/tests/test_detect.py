@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.main import app, MAX_UPLOAD_BYTES
+from app.pipeline.sprite_matching import prepare_templates, reconstruction_errors
 import cv2
+import numpy as np
 
 cv2.setNumThreads(1)
 BOUNDARY = b"chesstrace-test-boundary"
@@ -37,6 +39,16 @@ async def upload(path, payload, query=b""):
 
 
 class DetectTest(unittest.TestCase):
+    def test_template_distance_matches_rendered_difference(self):
+        rng = np.random.default_rng(21)
+        alpha = rng.random((5, 3, 3, 1), dtype=np.float32)
+        rgb = rng.random((5, 3, 3, 3), dtype=np.float32) * 255 * alpha
+        background = np.array([80, 170, 220], dtype=np.float32)
+        residual = rng.uniform(-80, 35, (3, 3, 3)).astype(np.float32)
+        expected = np.mean((rgb - alpha * background - residual) ** 2, axis=(1, 2, 3))
+        actual = reconstruction_errors(prepare_templates(rgb, alpha), background, residual, np.mean(residual ** 2))
+        np.testing.assert_allclose(actual, expected, rtol=1e-5)
+
     def test_square_scores_and_compatibility(self):
         payload = (ROOT / "examples/synthetic_chesscom_neo.png").read_bytes()
         query = b"manual_orientation=white_bottom&theme=chesscom_neo"
@@ -52,6 +64,15 @@ class DetectTest(unittest.TestCase):
     def test_bad_image_and_upload_limit(self):
         self.assertEqual(asyncio.run(upload("/detect", b"not an image"))[0], 400)
         self.assertEqual(asyncio.run(upload("/detect", b"x" * MAX_UPLOAD_BYTES))[0], 413)
+
+    def test_weak_match_explains_how_to_review(self):
+        written, image = cv2.imencode(".png", np.full((192, 192, 3), 138, np.uint8))
+        self.assertTrue(written)
+        status, result = asyncio.run(upload("/detect", image.tobytes(), b"manual_orientation=white_bottom"))
+        self.assertEqual(status, 200)
+        self.assertEqual(len(result["squares"]), 64)
+        self.assertTrue(any("piece set could not be matched reliably" in warning for warning in result["warnings"]))
+        self.assertFalse(result["fen_valid"])
 
 
 if __name__ == "__main__":

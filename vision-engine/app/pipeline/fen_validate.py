@@ -1,12 +1,9 @@
 """
 FEN validation, equivalent in strictness to chess.js's FEN parser.
 
-Primary path: `python-chess`'s `chess.Board(fen)` constructor, which
-performs the same category of strict structural + semantic validation
-chess.js does (field count, rank/file arithmetic, exactly one king per
-side, legal castling-rights/king-position combinations, etc.) — this is
-the "equivalent Python FEN-validation check" the spec calls for, and is
-what ships in requirements.txt for the real deployment.
+Primary path: parse the FEN with python-chess, then check the parsed
+board's status. The parser alone accepts syntactically correct positions
+that cannot be played, including boards without kings.
 
 Fallback path: a small dependency-free structural validator, used only if
 python-chess isn't importable. It checks the mechanical rules Phase 1's
@@ -92,8 +89,12 @@ def _structural_fallback(fen: str) -> FenValidationResult:
 def validate_fen(fen: str) -> FenValidationResult:
     if _HAS_PYTHON_CHESS:
         try:
-            _python_chess.Board(fen)
-            return FenValidationResult(True, None, "python-chess")
+            board = _python_chess.Board(fen)
         except ValueError as e:
             return FenValidationResult(False, str(e), "python-chess")
+        status = board.status()
+        if status != _python_chess.STATUS_VALID:
+            reasons = ", ".join(flag.name.lower().replace("_", " ") for flag in _python_chess.Status if flag & status)
+            return FenValidationResult(False, reasons, "python-chess")
+        return FenValidationResult(True, None, "python-chess")
     return _structural_fallback(fen)

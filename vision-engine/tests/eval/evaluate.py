@@ -18,6 +18,7 @@ import numpy as np
 ASSETS = VISION.parent / "chess.com-boards-and-pieces-2.x"
 SIZES = (288, 432, 640)
 SEED = 3103
+EXTRA_BOARDS = ("blue", "icy_sea", "marble", "dark_wood", "tournament", "red")
 
 
 def make_position(rng):
@@ -31,13 +32,10 @@ def make_position(rng):
             return board
 
 
-def synthetic_cases(per_size):
+def synthetic_cases(per_size, cross_theme=False):
     rng = random.Random(SEED)
-    for theme, (piece_set, board_set) in SPRITE_THEMES.items():
-        texture = cv2.imread(str(ASSETS / "boards" / f"{board_set}.png"))
-        if texture is None:
-            raise FileNotFoundError(f"Missing board texture {board_set}")
-        for side in SIZES:
+    for theme_index, (theme, (piece_set, board_set)) in enumerate(SPRITE_THEMES.items()):
+        for size_index, side in enumerate(SIZES):
             cell = side // 8
             sprites = {}
             for symbol in "KQRBNPkqrbnp":
@@ -46,7 +44,11 @@ def synthetic_cases(per_size):
                 sprites[symbol] = premultiplied(sprite, cell)
             for i in range(per_size):
                 board = make_position(rng)
-                flipped = i % 2 == 1
+                flipped = (i + size_index * int(cross_theme)) % 2 == 1
+                texture_name = EXTRA_BOARDS[(theme_index + size_index + i) % len(EXTRA_BOARDS)] if cross_theme else board_set
+                texture = cv2.imread(str(ASSETS / "boards" / f"{texture_name}.png"))
+                if texture is None:
+                    raise FileNotFoundError(f"Missing board texture {texture_name}")
                 image = cv2.resize(texture, (side, side), interpolation=cv2.INTER_AREA)
                 for square, piece in board.piece_map().items():
                     row, col = 7 - chess.square_rank(square), chess.square_file(square)
@@ -120,7 +122,7 @@ def evaluate(cases):
     return groups, errors
 
 
-def report(groups, errors, synthetic):
+def report(groups, errors, synthetic, cross_theme=False, per_size=9):
     total = sum(groups.values(), Counter())
     pct = lambda n, d: f"{100*n/d:.2f}%" if d else "—"
     header = "Synthetic" if synthetic else "Real CSV"
@@ -129,7 +131,9 @@ def report(groups, errors, synthetic):
         "The synthetic set measures rendered boards with known sprites and supplied orientation; it does not establish real screenshot accuracy."
         if synthetic else "Real results describe only the images in the supplied manifest.",
         "",
-        f"Synthetic settings: seed {SEED}, board sizes {', '.join(map(str, SIZES))} px before slight scaling, JPEG quality 72–94, {len(SPRITE_THEMES)} piece/board pairs."
+        f"Synthetic settings: seed {SEED}, board sizes {', '.join(map(str, SIZES))} px before slight scaling, JPEG quality 72–94, "
+        + (f"{len(SPRITE_THEMES)} piece sets mixed with {len(EXTRA_BOARDS)} board textures." if cross_theme
+           else f"{len(SPRITE_THEMES)} piece/board pairs.")
         if synthetic else "The optional CSV orientation column overrides OCR; omitted values use the normal detection path.",
         "",
         "| Set / board px | Boards | Per-square | Exact placement | Exact full FEN | Valid FEN |",
@@ -161,6 +165,10 @@ def report(groups, errors, synthetic):
     command = "python tests/eval/evaluate.py"
     if not synthetic:
         command += " --manifest tests/eval/manifest.csv --images tests/eval/images"
+    elif cross_theme:
+        command += " --cross-theme"
+    if synthetic and per_size != 9:
+        command += f" --per-size {per_size}"
     lines += ["", "Reproduce from vision-engine/:", "", f"    {command}", ""]
     return "\n".join(lines)
 
@@ -170,19 +178,31 @@ def main():
     parser.add_argument("--manifest", type=Path, help="CSV with image, expected_fen and optional orientation")
     parser.add_argument("--images", type=Path, default=Path(__file__).parent / "images")
     parser.add_argument("--per-size", type=int, default=9)
+    parser.add_argument("--cross-theme", action="store_true", help="Mix piece sets with varied board textures")
+    parser.add_argument("--min-theme-square-accuracy", type=float, help="Fail if any set's square accuracy falls below this fraction")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.per_size < 1:
         parser.error("--per-size must be positive")
     if args.manifest and (not args.manifest.is_file() or not args.images.is_dir()):
         parser.error("Real evaluation requires an existing CSV manifest and image directory.")
+    if args.min_theme_square_accuracy is not None and not 0 < args.min_theme_square_accuracy <= 1:
+        parser.error("--min-theme-square-accuracy must be between zero and one")
     cv2.setNumThreads(1)
-    cases = real_cases(args.manifest, args.images) if args.manifest else synthetic_cases(args.per_size)
+    cases = real_cases(args.manifest, args.images) if args.manifest else synthetic_cases(args.per_size, args.cross_theme)
     groups, errors = evaluate(cases)
-    markdown = report(groups, errors, synthetic=not args.manifest)
+    markdown = report(groups, errors, synthetic=not args.manifest, cross_theme=args.cross_theme, per_size=args.per_size)
     if args.output:
         args.output.write_text(markdown, encoding="utf-8")
     print(markdown)
+    if args.min_theme_square_accuracy is not None:
+        by_theme = defaultdict(Counter)
+        for label, stats in groups.items():
+            by_theme[label.split("/")[0]].update(stats)
+        failed = [label for label, stats in by_theme.items()
+                  if stats["correct"] / (64 * stats["boards"]) < args.min_theme_square_accuracy]
+        if failed:
+            raise SystemExit("Accuracy below threshold for: " + ", ".join(failed))
 
 
 if __name__ == "__main__":
