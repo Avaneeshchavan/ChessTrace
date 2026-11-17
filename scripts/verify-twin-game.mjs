@@ -131,12 +131,12 @@ try {
     await page.getByRole('button', { name: 'Replay twin from the departure' }).click();
     await page.getByRole('region', { name: 'Game replay' }).waitFor();
     await page.getByRole('button', { name: 'Next move' }).click();
-    await page.getByText('e3 · 5/5', { exact: true }).waitFor();
+    await page.getByText('3. e3', { exact: true }).waitFor();
     await capture('transposed-replay');
     await input.fill('1. a3');
     await submit.click();
     await page.getByRole('button', { name: 'Replay twin from the departure' }).click();
-    await page.getByText('Start · 0/8', { exact: true }).waitFor();
+    await page.getByText('Starting position', { exact: true }).waitFor();
     for (const provider of [
       { url: 'https://lichess.org/diwRghmF', username: '', month: '' },
       { url: 'https://www.chess.com/game/live/123456', username: 'fixture-player', month: '2026-01' },

@@ -111,7 +111,7 @@ async function exerciseFlow(browser, device) {
     await page.getByRole('button', { name: 'Search this position' }).tap();
     await page.getByRole('button', { name: 'Replay', exact: true }).tap();
     await page.getByRole('button', { name: 'Next move' }).tap();
-    await page.getByText('e5 · 2/4', { exact: true }).waitFor();
+    await page.getByText('1… e5', { exact: true }).waitFor();
 
     const nav = page.getByRole('navigation', { name: 'Mobile study navigation' });
     await nav.getByRole('button', { name: 'More' }).tap();
