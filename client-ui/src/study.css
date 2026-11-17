@@ -364,3 +364,24 @@
   padding-inline-start: .65rem;
   background: color-mix(in srgb, var(--ct-accent) 9%, transparent);
 }
+
+.board-crop-frame {
+  position: relative;
+  width: 100%;
+  max-width: 36rem;
+  margin-inline: auto;
+  overflow: hidden;
+  background: var(--ct-surface);
+  touch-action: none;
+}
+.board-crop-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
+.board-crop-box { position: absolute; border: 2px solid white; box-shadow: 0 0 0 100vmax rgb(0 0 0 / .55); cursor: move; }
+.board-crop-handle { position: absolute; width: 36px; height: 36px; display: grid; place-items: center; cursor: nwse-resize; }
+.board-crop-handle::after { content: ''; width: 13px; height: 13px; border: 2px solid #18130e; border-radius: 2px; background: white; }
+.board-crop-handle[data-corner="nw"] { left: -2px; top: -2px; }
+.board-crop-handle[data-corner="ne"] { right: -2px; top: -2px; cursor: nesw-resize; }
+.board-crop-handle[data-corner="sw"] { left: -2px; bottom: -2px; cursor: nesw-resize; }
+.board-crop-handle[data-corner="se"] { right: -2px; bottom: -2px; }
+
+.review-metadata { border: 1px solid var(--ct-line); border-radius: .65rem; padding: .85rem; }
+#review-orientation button[aria-pressed="true"] { border-color: var(--ct-accent); color: var(--ct-accent); }

@@ -31,7 +31,27 @@ export function availableCastling(squares) {
   ).map(([flag]) => flag);
 }
 
-export function reviewPosition(squares, turn, castling) {
+export function enPassantTargets(squares, turn) {
+  const pawnRank = turn === 'w' ? 5 : 4;
+  const targetRank = turn === 'w' ? 6 : 3;
+  const pawn = turn === 'w' ? 'bP' : 'wP';
+  return [...'abcdefgh'].filter(file => squares[file + pawnRank]?.piece === pawn && !squares[file + targetRank]?.piece)
+    .map(file => file + targetRank);
+}
+
+export function positionForManualSetup(fen) {
+  const empty = '8/8/8/8/8/8/8/8 w - - 0 1';
+  if (typeof fen !== 'string') return { fen: empty, squares: [] };
+  const symbols = fen.split(' ')[0].replaceAll('/', '').replace(/[1-8]/g, n => '.'.repeat(Number(n)));
+  if (!/^[.prnbqkPRNBQK]{64}$/.test(symbols)) return { fen: empty, squares: [] };
+  const squares = [...symbols].flatMap((symbol, index) => symbol === '.' ? [] : [{
+    square: SQUARES[index],
+    piece: (symbol === symbol.toUpperCase() ? 'w' : 'b') + symbol.toUpperCase(),
+  }]);
+  return { fen, squares };
+}
+
+export function reviewPosition(squares, turn, castling, enPassant = '-') {
   const ranks = [];
   for (let rank = 0; rank < 8; rank++) {
     let row = '', empty = 0;
@@ -45,7 +65,8 @@ export function reviewPosition(squares, turn, castling) {
     ranks.push(row + (empty || ''));
   }
   const rights = availableCastling(squares).filter(flag => castling.includes(flag)).join('') || '-';
-  const fen = `${ranks.join('/')} ${turn} ${rights} - 0 1`;
+  const target = enPassantTargets(squares, turn).includes(enPassant) ? enPassant : '-';
+  const fen = `${ranks.join('/')} ${turn} ${rights} ${target} 0 1`;
   const validity = validateFen(fen);
   if (!validity.ok) return { fen, error: validity.error };
   const chess = new Chess(fen);

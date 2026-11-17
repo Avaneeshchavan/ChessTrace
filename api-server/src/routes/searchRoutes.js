@@ -83,6 +83,33 @@ function createSearchRouter(prisma = require('../db')) {
     }
   });
 
+  router.get('/placement', async (req, res) => {
+    const { placement } = req.query;
+    if (typeof placement !== 'string' || placement.length > 71 || !/^[prnbqkPRNBQK1-8/]+$/.test(placement)) {
+      return res.status(400).json({ error: 'Enter a valid chessboard placement.' });
+    }
+    const turns = ['w', 'b'].filter(turn => !getSearchPosition(`${placement} ${turn} -`).error);
+    if (!turns.length) return res.status(400).json({ error: 'Correct the pieces before searching.' });
+    // The exact index supports all 16 castling subsets and two turns as a bounded set of keys.
+    const rights = Array.from({ length: 16 }, (_, mask) =>
+      [...'KQkq'].filter((_, index) => mask & (1 << index)).join('') || '-');
+    const cores = turns.flatMap(turn => rights.map(flags => `${placement} ${turn} ${flags}`));
+    try {
+      const matches = await findExactMatch(prisma, cores);
+      const distinct = new Map();
+      const cache = new Map();
+      for (const match of matches) {
+        const id = match.gameId ?? match.game.id;
+        if (!distinct.has(id)) distinct.set(id, { ...match, id: String(match.id),
+          ...(match.positionMove ? {} : replayPositionDetails(match.game.pgn, match.halfMove, cache)) });
+      }
+      res.json({ matchType: 'placement', replayCount: distinct.size, matches: [...distinct.values()] });
+    } catch (error) {
+      console.error('Placement search error:', error);
+      res.status(500).json({ error: 'Could not search for this board layout.' });
+    }
+  });
+
   router.get('/games/:id', async (req, res) => {
     const id = Number(req.params.id);
     if (!/^\d+$/.test(req.params.id) || !Number.isInteger(id) || id < 1 || id > 2_147_483_647) {

@@ -29,7 +29,7 @@ ASSUMPTIONS THIS RELIES ON (state these to the caller / in docs)
       there's then no external contour to find, since there's no
       board-to-background transition inside the frame at all). In that
       degenerate case we fall back to treating the ENTIRE image as the
-      board (see `_fallback_whole_image`), which is correct if and only
+      board (see `centered_board_box`), which is correct if and only
       if the user did crop exactly to the board.
     * A UI element elsewhere on the page is also large and square (e.g. a
       square video/webcam overlay in a streaming screenshot, or a square
@@ -61,7 +61,7 @@ class BoardBox:
     method: str  # "contour_detection" or "fallback_whole_image"
 
 
-def _fallback_whole_image(image: np.ndarray) -> BoardBox:
+def centered_board_box(image: np.ndarray) -> BoardBox:
     h, w = image.shape[:2]
     side = min(h, w)
     return BoardBox(x=(w - side) // 2, y=(h - side) // 2, w=side, h=side, method="fallback_whole_image")
@@ -111,7 +111,7 @@ def detect_board(image: np.ndarray, min_area_fraction: float = 0.15) -> BoardBox
             best = (x, y, w, h)
 
     if best is None:
-        return _fallback_whole_image(image)
+        return centered_board_box(image)
 
     x, y, w, h = best
     # The dilation pass above (needed to bridge small gaps into one closed

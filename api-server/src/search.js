@@ -35,7 +35,7 @@ function fenCoreToFullFen(fenCore) {
 async function findExactMatch(prisma, fenCore) {
   if (process.env.USE_COMPACT_STORAGE === 'true') return findCompactExact(prisma, fenCore);
   return prisma.position.findMany({
-    where: { fenCore },
+    where: { fenCore: Array.isArray(fenCore) ? { in: fenCore } : fenCore },
     include: { game: true },
     take: 100, // sane upper bound; a hash hit could still be common in the opening
   });

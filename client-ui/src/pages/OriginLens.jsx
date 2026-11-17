@@ -3,6 +3,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, AlertTriangle, Search, Loader2, ArrowUpRight, Camera } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { GameReplay } from '../components/Board/GameReplay';
+import { BoardCrop } from '../components/Board/BoardCrop';
 import { ScreenshotReview } from '../components/Board/ScreenshotReview';
 import { useOnline } from '../hooks/useOnline';
 import { takeSharedImage } from '../utils/sharedImage';
@@ -25,6 +26,8 @@ export default function OriginLens({ sample = false }) {
   const [scanError, setScanError] = useState(null);
   const [scanCancelled, setScanCancelled] = useState(false);
   const lastUpload = useRef(null);
+  const [proposal, setProposal] = useState(null);
+  const [manualFen, setManualFen] = useState(null);
   // Pipeline states
   const [phase, setPhase] = useState(sample ? 'done' : 'idle');
   const [dragOver, setDragOver] = useState(false);
@@ -59,48 +62,46 @@ export default function OriginLens({ sample = false }) {
     return () => clearInterval(timer);
   }, [scanStarted]);
 
-  // ---- Upload Handler ----
-  const processFile = useCallback(async (file, expectedFen) => {
+  const scanFile = useCallback(async (file, expectedFen, crop = null) => {
     if (!file) return;
-
     requestRef.current?.abort();
     const request = new AbortController();
     requestRef.current = request;
-    lastUpload.current = { file, expectedFen };
+    lastUpload.current = { file, expectedFen, crop };
     wakeScanner(VISION_URL);
     setScanError(null);
     setScanCancelled(false);
     setElapsed(0);
     setScanStarted(performance.now());
-    setPreviewUrl(URL.createObjectURL(file));
+    if (!crop) {
+      setPreviewUrl(URL.createObjectURL(file));
+      setProposal(null);
+      setManualFen(null);
+    }
     setErrorMessage('');
     setSearchResult(null);
     setReplay(null);
     setVisionResult(null);
-
-    // Step 1: POST image to vision-engine
-    setPhase('uploading');
+    setPhase(crop ? 'uploading' : 'locating');
     try {
       const formData = new FormData();
       formData.append('file', file);
-
-      const visionRes = await fetchService(VISION_URL, `/parse-screenshot`, {
-        method: 'POST',
-        body: formData,
-        signal: request.signal,
-      }, { timeoutMs: 90_000, skipHealth: true });
-
-      if (!visionRes.ok) {
-        const errBody = await visionRes.json().catch(() => ({}));
-        throw new Error(errBody.detail || `Vision engine returned ${visionRes.status}`);
-      }
-
-      const vision = await visionRes.json();
+      const path = crop ? '/parse-screenshot?' + new URLSearchParams({
+        x: crop.x, y: crop.y, width: crop.size, height: crop.size,
+      }) : '/locate-board';
+      const response = await fetchService(VISION_URL, path, { method: 'POST', body: formData, signal: request.signal },
+        { timeoutMs: 90_000, skipHealth: true });
+      const result = await response.json();
       if (request.signal.aborted) return;
-      if (expectedFen && vision.fen.split(' ')[0] === expectedFen.split(' ')[0]) vision.fen = expectedFen;
-      setVisionResult(vision);
+      if (!crop) {
+        setProposal(result);
+        setPhase('crop');
+        return;
+      }
+      if (expectedFen && result.fen.split(' ')[0] === expectedFen.split(' ')[0]) result.fen = expectedFen;
+      setVisionResult(result);
       setPhase('review');
-      return vision;
+      return result;
     } catch (err) {
       if (request.signal.aborted) return;
       setPhase('error');
@@ -120,16 +121,16 @@ export default function OriginLens({ sample = false }) {
       const next = new URLSearchParams(params);
       next.delete('share');
       setParams(next, { replace: true });
-      if (file) processFile(file);
+      if (file) scanFile(file);
       else {
         setErrorMessage('This shared image is unavailable. Choose a PNG, JPEG, or WebP screenshot up to 8 MiB.');
         setPhase('error');
       }
     });
     return () => { active = false; };
-  }, [params, setParams, processFile]);
+  }, [params, setParams, scanFile]);
 
-  const searchPosition = useCallback(async (fen, replayFirst = false) => {
+  const searchPosition = useCallback(async (fen, replayFirst = false, broader = false) => {
     requestRef.current?.abort();
     const request = new AbortController();
     requestRef.current = request;
@@ -138,9 +139,9 @@ export default function OriginLens({ sample = false }) {
     setReplay(null);
     setPhase('searching');
     try {
-      const searchRes = await fetchService(API_URL, `/api/search?fen=${encodeURIComponent(fen)}&includeCorpusCount=1`,
-        { signal: request.signal },
-      );
+      const path = broader ? '/api/search/placement?' + new URLSearchParams({ placement: fen.split(' ')[0] })
+        : '/api/search?' + new URLSearchParams({ fen, includeCorpusCount: '1' });
+      const searchRes = await fetchService(API_URL, path, { signal: request.signal });
 
       if (!searchRes.ok) {
         const body = await searchRes.json().catch(() => ({}));
@@ -178,13 +179,18 @@ export default function OriginLens({ sample = false }) {
       if (!response.ok) throw new Error('The sample image could not load.');
       const image = await response.blob();
       if (request.signal.aborted) return;
-      const vision = await processFile(new File([image], 'guided-e4.png', { type: 'image/png' }), sampleFen);
-      if (vision?.fen === sampleFen) await searchPosition(sampleFen, true);
+      await scanFile(new File([image], 'guided-e4.png', { type: 'image/png' }), sampleFen);
     } catch (error) {
       if (request.signal.aborted) return;
       setPhase('error');
       setScanError(error);
     }
+  }
+
+  async function confirmCrop(crop) {
+    const { file, expectedFen } = lastUpload.current;
+    const vision = await scanFile(file, expectedFen, crop);
+    if (expectedFen && vision?.fen === expectedFen) await searchPosition(expectedFen, true);
   }
 
   function showWalkthrough() {
@@ -195,6 +201,8 @@ export default function OriginLens({ sample = false }) {
     setScanCancelled(false);
     setErrorMessage('');
     setPreviewUrl(null);
+    setProposal(null);
+    setManualFen(null);
     setVisibleMatches(5);
     setVisionResult(sampleBoard);
     setSearchResult(sampleMatches);
@@ -212,21 +220,22 @@ export default function OriginLens({ sample = false }) {
   function retryScan() {
     if (!lastUpload.current) { scanSample(); return; }
     const { file, expectedFen } = lastUpload.current;
-    processFile(file, expectedFen);
+    if (lastUpload.current.crop) confirmCrop(lastUpload.current.crop);
+    else scanFile(file, expectedFen);
   }
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer?.files?.[0];
-    processFile(file);
-  }, [processFile]);
+    scanFile(file);
+  }, [scanFile]);
 
   const handleFileSelect = useCallback((e) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same file after a failed upload
-    processFile(file);
-  }, [processFile]);
+    scanFile(file);
+  }, [scanFile]);
 
   function clearSearch() {
     if (phase === 'searching') requestRef.current?.abort();
@@ -236,9 +245,9 @@ export default function OriginLens({ sample = false }) {
     setPhase('review');
   }
 
-  const uploading = phase === 'uploading';
+  const uploading = phase === 'uploading' || phase === 'locating';
   const uploadDisabled = !online || uploading;
-  const confidence = Math.round((visionResult?.theme_match_confidence ?? 0) * 100);
+
   const games = new Map();
   for (const match of searchResult?.matches ?? []) {
     const key = match.gameId ?? match.game?.id ?? match.id;
@@ -264,7 +273,7 @@ export default function OriginLens({ sample = false }) {
             <button type="button" className="lens-upload-action" data-dragging={dragOver}
               disabled={uploadDisabled} onClick={() => fileRef.current?.click()}>
               {uploading ? <Loader2 size={22} className="text-accent animate-spin" aria-hidden="true" /> : <Upload size={22} className="text-accent" aria-hidden="true" />}
-              <span className="font-semibold">{uploading ? 'Reading the board…' : previewUrl ? 'Replace screenshot' : 'Upload a board screenshot'}</span>
+              <span className="font-semibold">{uploading ? 'Reading the screenshot…' : previewUrl ? 'Replace screenshot' : 'Upload a board screenshot'}</span>
               {!visionResult && <span className="text-xs text-slate-500">Drop or choose a PNG, JPEG, or WebP · up to 8 MiB</span>}
             </button>
             <input ref={fileRef} type="file" aria-label="Board screenshot" accept="image/png,image/jpeg,image/webp"
@@ -277,7 +286,7 @@ export default function OriginLens({ sample = false }) {
                 className="hidden" onChange={handleFileSelect} />
               <p className="text-xs text-slate-500">Screenshots are more reliable than photos of screens.</p>
             </div>
-            {previewUrl && !visionResult && (
+            {previewUrl && !visionResult && phase !== 'crop' && (
               <div className="lens-preview">
                 <img src={previewUrl} alt="Board screenshot preview" />
                 {uploading && <span className="lens-scan" aria-hidden="true" />}
@@ -302,6 +311,9 @@ export default function OriginLens({ sample = false }) {
             {!walkthrough && visionResult?.fen === sampleFen && <p className="mt-2 text-sm">Piece placement matches the example. Review any flagged squares before searching again.</p>}
           </div>}
 
+          {phase === 'crop' && <BoardCrop preview={previewUrl} proposal={proposal} offline={!online} onConfirm={confirmCrop} />}
+          {proposal && visionResult && phase !== 'crop' && !walkthrough && <button type="button" className="ct-quiet"
+            onClick={() => { clearSearch(); setPhase('crop'); }}>Adjust crop</button>}
           {(uploading || scanError || scanCancelled) && <div className="ct-panel space-y-2 p-3 text-sm">
             {uploading && <p role="status">{elapsed >= 3
               ? `Taking longer than usual (${elapsed} s). The first scan after inactivity can take about a minute.`
@@ -310,7 +322,6 @@ export default function OriginLens({ sample = false }) {
             {scanError && <p role="alert">{scanError.message}</p>}
             {scanCancelled && <p role="status">Scan canceled. Your screenshot is still here.</p>}
             {!uploading && <button type="button" className="ct-quiet" disabled={!online} onClick={retryScan}>Retry scan</button>}
-            <Link className="ct-quiet" to="/sandbox?setup=1">Set up the board manually</Link>
           </div>}
 
           {phase === 'error' && errorMessage && (
@@ -320,11 +331,12 @@ export default function OriginLens({ sample = false }) {
             </div>
           )}
 
-          {visionResult && (
+          <Link className="ct-quiet" to="/sandbox?setup=1" state={{ boardFen: manualFen }}>
+            Set up the position by hand
+          </Link>
+
+          {visionResult && phase !== 'crop' && (
             <>
-              {!walkthrough && <p className="font-mono text-xs text-slate-500">
-                Template fit {confidence}% · {visionResult.orientation === 'black_bottom' ? 'Black' : 'White'} at bottom
-              </p>}
               {visionResult.warnings?.map(warning => {
                 const crop = warning.includes('centered square crop');
                 const orientation = /coordinate labels|manual_orientation/.test(warning);
@@ -339,7 +351,8 @@ export default function OriginLens({ sample = false }) {
                     : <a href={orientation ? '#review-orientation' : '#detected-board'} className="mt-2 inline-block underline">{orientation ? 'Check orientation' : 'Review board'}</a>}
                 </div>;
               })}
-              <ScreenshotReview key={walkthrough ? 'walkthrough' : previewUrl} result={visionResult} searching={phase === 'searching'} offline={!online} onSearch={searchPosition} onEdit={clearSearch} />
+              <ScreenshotReview key={walkthrough ? 'walkthrough' : previewUrl} result={visionResult} searching={phase === 'searching'} offline={!online} onSearch={searchPosition} onEdit={clearSearch}
+                knownMetadata={walkthrough || (sample && visionResult.fen === sampleFen)} onPositionChange={setManualFen} />
             </>
           )}
         </section>
@@ -356,11 +369,18 @@ export default function OriginLens({ sample = false }) {
               {walkthrough && searchResult === sampleMatches && <p className="mt-2 text-sm">Three example replays</p>}
               {searchResult.matchType === 'exact' && Number.isInteger(searchResult.matchingGameCount) &&
                 <p className="mt-2 font-mono text-xs text-accent">{searchResult.matchingGameCount.toLocaleString()} {searchResult.matchingGameCount === 1 ? 'matching game' : 'matching games'} · {searchResult.replayCount.toLocaleString()} {searchResult.replayCount === 1 ? 'replay available' : 'replays available'}</p>}
-              {searchResult.matchType === 'similar' && <p className="my-3 text-sm text-slate-500">
-                No exact match found{Number.isInteger(searchResult.corpusGames)
+              {searchResult.matchType === 'similar' && <div className="my-3 space-y-2 text-sm text-slate-500">
+                <p>No exact match found{Number.isInteger(searchResult.corpusGames)
                   ? ` in ${searchResult.corpusGames.toLocaleString()} ${searchResult.corpusGames === 1 ? 'game' : 'games'}` : ''}.
-                {matches.length ? ' Similar positions are shown below.' : ' No similar positions were available.'}
-                {' '}Check castling rights, side to move, and any flagged squares.
+                  Check whose turn it is and which castling rights remain, then search again.</p>
+                <a href="#review-game-state" className="inline-block underline">Review turn and castling</a>
+                <button type="button" className="ct-quiet" disabled={!manualFen || !online}
+                  onClick={() => searchPosition(manualFen, false, true)}>Search ignoring castling and turn</button>
+                <p>{matches.length ? 'Similar positions are shown below.' : 'No similar positions were available.'}</p>
+              </div>}
+              {searchResult.matchType === 'placement' && <p className="my-3 text-sm">
+                {matches.length ? `${matches.length} available ${matches.length === 1 ? 'replay has' : 'replays have'} this piece layout. The turn and castling rights may differ.`
+                  : 'No available replay has this piece layout, even ignoring castling and turn.'}
               </p>}
               {replay && <div className="my-4"><GameReplay key={replay.id} match={replay} /></div>}
               <ol>

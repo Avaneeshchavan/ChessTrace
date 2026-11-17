@@ -68,6 +68,8 @@ jobs:
       - run: python tests/test_pipeline.py
       - run: python -m unittest discover -s tests -p test_detect.py
       - run: python tests/eval/evaluate.py --cross-theme --per-size 2 --min-theme-square-accuracy 0.98
+      - run: python tests/eval/prepare_recovery_dev.py --root "$RUNNER_TEMP/chesstrace-recovery"
+      - run: python tests/eval/recovery.py dev --root "$RUNNER_TEMP/chesstrace-recovery" --output "$RUNNER_TEMP/recovery.csv"
 
   release-gate:
     if: github.event.repository.visibility == 'public'

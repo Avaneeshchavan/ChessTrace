@@ -36,7 +36,7 @@ except ImportError:  # older python-multipart releases
     from multipart.exceptions import MultipartParseError
 from fastapi.responses import JSONResponse
 
-from app.pipeline.board_detection import detect_board
+from app.pipeline.board_detection import BoardBox, detect_board, centered_board_box
 from app.pipeline.fen_assembly import _algebraic_square, assemble_fen
 from app.pipeline.fen_validate import validate_fen
 from app.pipeline.grid_slicing import THEME_GRID_CONFIGS, slice_board
@@ -122,9 +122,7 @@ UPLOAD_DOCS = {"requestBody": {"required": True, "content": {"multipart/form-dat
 }}}}
 
 
-@app.post("/detect", response_model=ParseScreenshotResponse, openapi_extra=UPLOAD_DOCS)
-@app.post("/parse-screenshot", response_model=ParseScreenshotResponse, openapi_extra=UPLOAD_DOCS)
-async def parse_screenshot(request: Request, theme: str = "auto", manual_orientation: Optional[str] = None):
+async def read_screenshot(request: Request):
     if request.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "multipart/form-data":
         raise HTTPException(415, "Upload a multipart form with one image in the file field.")
     total = 0
@@ -151,23 +149,60 @@ async def parse_screenshot(request: Request, theme: str = "auto", manual_orienta
     finally:
         await form.close()
 
-    return await run_in_threadpool(detect_bytes, raw_bytes, theme, manual_orientation)
+    return raw_bytes
 
 
-def detect_bytes(raw_bytes: bytes, theme="auto", manual_orientation=None):
+@app.post("/locate-board", openapi_extra=UPLOAD_DOCS)
+async def locate_board(request: Request):
+    return await run_in_threadpool(locate_bytes, await read_screenshot(request))
+
+
+@app.post("/detect", response_model=ParseScreenshotResponse, openapi_extra=UPLOAD_DOCS)
+@app.post("/parse-screenshot", response_model=ParseScreenshotResponse, openapi_extra=UPLOAD_DOCS)
+async def parse_screenshot(request: Request, theme: str = "auto", manual_orientation: Optional[str] = None,
+                           x: Optional[int] = None, y: Optional[int] = None,
+                           width: Optional[int] = None, height: Optional[int] = None):
+    crop = (x, y, width, height)
+    return await run_in_threadpool(detect_bytes, await read_screenshot(request), theme, manual_orientation, crop)
+
+
+def decode_screenshot(raw_bytes):
     try:
         image = cv2.imdecode(np.frombuffer(raw_bytes, dtype=np.uint8), cv2.IMREAD_COLOR) if raw_bytes else None
     except cv2.error as error:
         raise HTTPException(400, "Could not decode image within the supported size limit.") from error
     if image is None or min(image.shape[:2]) < 64:
         raise HTTPException(400, "Upload a decodable board image at least 64 pixels wide and tall.")
-    return analyze_image(image, theme, manual_orientation)
+    return image
 
 
-def analyze_image(image: np.ndarray, theme="auto", manual_orientation=None):
+def locate_bytes(raw_bytes):
+    image = decode_screenshot(raw_bytes)
+    box = detect_board(image)
+    height, width = image.shape[:2]
+    if box.w < 64:
+        box = centered_board_box(image)
+    return {"width": width, "height": height, "crop": {"x": box.x, "y": box.y, "size": box.w},
+            "fallback": box.method == "fallback_whole_image"}
+
+
+def detect_bytes(raw_bytes: bytes, theme="auto", manual_orientation=None, crop=(None, None, None, None)):
+    image = decode_screenshot(raw_bytes)
+    box = None
+    if any(value is not None for value in crop):
+        x, y, width, height = crop
+        image_height, image_width = image.shape[:2]
+        if (None in crop or min(x, y) < 0 or width != height or width < 64
+                or x + width > image_width or y + height > image_height):
+            raise HTTPException(400, "Choose a square crop of at least 64 pixels within the screenshot.")
+        box = BoardBox(x, y, width, height, "confirmed_crop")
+    return analyze_image(image, theme, manual_orientation, box)
+
+
+def analyze_image(image: np.ndarray, theme="auto", manual_orientation=None, board_box=None):
     warnings = []
 
-    board_box = detect_board(image)
+    board_box = board_box or detect_board(image)
     if min(board_box.w, board_box.h) < 64:
         raise HTTPException(400, "The detected board is too small. Upload a closer crop.")
     if board_box.method == "fallback_whole_image":
