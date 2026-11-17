@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Chess } from 'chess.js';
 import { API_BASE_URL } from '../../config/api';
 import { Board } from './Board';
+import { chessMoveLabel } from '../../utils/pgnComment';
 import { MoveLedger } from './MoveLedger';
 
 export function GameReplay({ match }) {
@@ -43,7 +44,7 @@ export function GameReplay({ match }) {
       <Board fen={ply ? data.moves[ply - 1].after : data.moves[0].before} interactive={false} viewOnly />
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
         <button type="button" disabled={!ply} onClick={() => setPly(ply - 1)} className="ct-quiet disabled:opacity-50">Previous move</button>
-        <span className="font-mono text-xs">{ply ? data.moves[ply - 1].san : 'Start'} · {ply}/{data.moves.length}</span>
+        <span className="font-mono text-xs">{chessMoveLabel(data.moves[ply - 1])}</span>
         <button type="button" disabled={ply >= data.moves.length} onClick={() => setPly(ply + 1)} className="ct-quiet disabled:opacity-50">Next move</button>
       </div>
       <div className="ct-panel"><MoveLedger moves={data.moves} comments={data.comments} ply={ply} onSelect={setPly} /></div>

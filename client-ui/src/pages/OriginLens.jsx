@@ -39,6 +39,7 @@ export default function OriginLens({ sample = false }) {
   // Search response
   const [searchResult, setSearchResult] = useState(null);
   const [replay, setReplay] = useState(null);
+  const [visibleMatches, setVisibleMatches] = useState(5);
 
   // Error state
   const [errorMessage, setErrorMessage] = useState('');
@@ -135,6 +136,7 @@ export default function OriginLens({ sample = false }) {
       const search = await searchRes.json();
       if (request.signal.aborted) return;
       setSearchResult(search);
+      setVisibleMatches(5);
       if (replayFirst && search.matchType === 'exact') {
         const first = search.matches.map(replayRecord).find(record => record.gameId);
         if (first) setReplay(first);
@@ -258,7 +260,7 @@ export default function OriginLens({ sample = false }) {
               {uploading && <span className="lens-scan" aria-hidden="true" />}
             </div>
             {uploading && <p role="status" className="mt-2 text-sm">Scanning the sample screenshot…</p>}
-            {sampleChecked && <p className="mt-2 text-sm text-slate-500">Piece placement matches the example. The game record supplies Black to move and the castling rights.</p>}
+            {sampleChecked && <p className="mt-2 text-sm text-slate-500">Piece placement matches the example. The game record supplies Black to move and the castling rights. A flagged square still shows where the scanner was unsure. You can confirm it against the example.</p>}
             {visionResult && !sampleChecked && <p className="mt-2 text-sm">Review the detected pieces before searching.</p>}
             {phase === 'error' && online && <button type="button" className="ct-quiet mt-2" onClick={() => setSampleRun(value => value + 1)}>Retry sample</button>}
           </div>}
@@ -275,9 +277,20 @@ export default function OriginLens({ sample = false }) {
               <p className="font-mono text-xs text-slate-500">
                 Template fit {confidence}% · {visionResult.orientation === 'black_bottom' ? 'Black' : 'White'} at bottom
               </p>
-              {visionResult.warnings?.filter(warning => warning.startsWith('The piece set')).map(warning => (
-                <p key={warning} role="status" className="ct-panel p-3 text-sm text-amber-700">{warning}</p>
-              ))}
+              {visionResult.warnings?.map(warning => {
+                const crop = warning.includes('centered square crop');
+                const orientation = /coordinate labels|manual_orientation/.test(warning);
+                const label = crop ? 'Check the crop' : orientation ? 'Check orientation' : 'Check the detected pieces';
+                const message = crop ? 'The scanner used the center of the image because it could not locate the board. Use a tighter screenshot if the board looks wrong.'
+                  : orientation ? 'The scanner could not confirm the board orientation. Check which side is at the bottom.' : warning;
+                return <div key={warning} role="status" className="ct-panel p-3 text-sm text-amber-700">
+                  <p><strong>Review needed · {label}</strong></p>
+                  <p>{message}</p>
+                  {crop && !sample
+                    ? <button type="button" className="ct-quiet mt-2" onClick={() => fileRef.current?.click()}>Choose a tighter screenshot</button>
+                    : <a href={orientation ? '#review-orientation' : '#detected-board'} className="mt-2 inline-block underline">{orientation ? 'Check orientation' : 'Review board'}</a>}
+                </div>;
+              })}
               <ScreenshotReview result={visionResult} searching={phase === 'searching'} offline={!online} onSearch={searchPosition} onEdit={clearSearch} />
             </>
           )}
@@ -292,7 +305,8 @@ export default function OriginLens({ sample = false }) {
             </div>
           ) : searchResult ? (
             <>
-              <p className="mt-2 font-mono text-xs text-accent">{matches.length} {matches.length === 1 ? 'game' : 'games'} with {searchResult.matchType === 'exact' ? 'this position' : 'similar positions'}</p>
+              {searchResult.matchType === 'exact' && Number.isInteger(searchResult.matchingGameCount) &&
+                <p className="mt-2 font-mono text-xs text-accent">{searchResult.matchingGameCount.toLocaleString()} {searchResult.matchingGameCount === 1 ? 'matching game' : 'matching games'} · {searchResult.replayCount.toLocaleString()} {searchResult.replayCount === 1 ? 'replay available' : 'replays available'}</p>}
               {searchResult.matchType === 'similar' && <p className="my-3 text-sm text-slate-500">
                 No exact match found{Number.isInteger(searchResult.corpusGames)
                   ? ` in ${searchResult.corpusGames.toLocaleString()} ${searchResult.corpusGames === 1 ? 'game' : 'games'}` : ''}.
@@ -301,25 +315,28 @@ export default function OriginLens({ sample = false }) {
               </p>}
               {replay && <div className="my-4"><GameReplay key={replay.id} match={replay} /></div>}
               <ol>
-                {matches.map(match => {
+                {matches.slice(0, visibleMatches).map(match => {
                   const game = match.game ?? match;
                   const year = game.playedAt?.slice(0, 4);
                   const record = replayRecord(match);
                   return (
-                    <li key={match.id} className="lens-match">
-                      <p className="font-mono text-xs text-slate-500">{[game.event, year, game.result,
-                        `Move ${Math.ceil(match.halfMove / 2)}${match.halfMove % 2 ? '.' : '…'}`].filter(Boolean).join(' · ')}</p>
+                    <li key={match.id} className="lens-match" data-selected={replay?.id === match.id}>
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="text-base font-semibold">{game.whiteName} <span className="text-slate-500">vs.</span> {game.blackName}</h3>
                         {record.gameId && <button type="button" onClick={() => setReplay(record)}
                           className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm text-accent" aria-pressed={replay?.id === match.id}>
-                          Replay <ArrowUpRight size={15} aria-hidden="true" />
+                          {replay?.id === match.id ? 'Playing' : 'Replay'} <ArrowUpRight size={15} aria-hidden="true" />
                         </button>}
                       </div>
+                      <p className="text-xs text-slate-500">{[game.result, game.event, year,
+                        match.nextMove ? `Next move: ${match.nextMove}` : match.positionMove && `Move ${match.positionMove}`].filter(Boolean).join(' · ')}</p>
+                      {match.similarityLabel && <p className="mt-1 text-sm">{match.similarityLabel}</p>}
+                      {!!match.sharedFeatures?.length && <ul className="text-xs text-slate-500">{match.sharedFeatures.map(feature => <li key={feature}>{feature}</li>)}</ul>}
                     </li>
                   );
                 })}
               </ol>
+              {visibleMatches < matches.length && <button type="button" className="ct-quiet mt-3" onClick={() => setVisibleMatches(count => count + 5)}>Show more</button>}
             </>
           ) : (
             <div className="py-8 text-slate-500">

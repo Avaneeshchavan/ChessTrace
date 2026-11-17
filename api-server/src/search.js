@@ -11,6 +11,7 @@
 // API layer.
 
 const { findCompactExact, findCompactSimilar, findCompactGame } = require('./compact-search');
+const { replayPositionDetails } = require('./compact-position');
 const { computeStructuralVector, toPgvectorLiteral } = require('./vector');
 
 /**
@@ -81,7 +82,7 @@ async function findSimilarPositions(prisma, fenCore, limit = 10, options = {}) {
         LIMIT $2
       )
       SELECT n.id::text AS id, n."gameId", n."halfMove", n."fenCore", n.distance,
-        g."whiteName", g."blackName", g.event, g.result, g."playedAt",
+        g."whiteName", g."blackName", g.event, g.result, g."playedAt", g.pgn,
         tags.opening, tags.eco, tags."startFen"
       FROM nearest n
       JOIN "Game" g ON n."gameId" = g.id
@@ -106,7 +107,8 @@ async function findSimilarPositions(prisma, fenCore, limit = 10, options = {}) {
   ]);
 
   // rows[0] is the SET LOCAL result (irrelevant); rows[1] is the query result.
-  return rows[1];
+  const cache = new Map();
+  return rows[1].map(({ pgn, ...row }) => ({ ...row, ...replayPositionDetails(pgn, row.halfMove, cache) }));
 }
 
 async function findGameReplay(prisma, id) {

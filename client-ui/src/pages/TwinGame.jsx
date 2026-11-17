@@ -69,7 +69,7 @@ function TwinResults({ result }) {
           <h2>What the corpus played</h2>
           {lead ? <>
             <p className="twin-move">{lead.san}</p>
-            <p>{lead.games} {lead.games === 1 ? 'game' : 'games'} · {lead.whiteWins} white wins · {lead.draws} draws · {lead.blackWins} black wins
+            <p>{lead.games} {lead.games === 1 ? 'sampled game' : 'sampled games'} · {lead.whiteWins} white wins · {lead.draws} draws · {lead.blackWins} black wins
               {!!lead.other && ` · ${lead.other} other`}</p>
           </> : <p>No different continuation was available in the replay sample.</p>}
           <p>Based on {replaySample} replayable {replaySample === 1 ? 'game' : 'games'} at the shared position.</p>

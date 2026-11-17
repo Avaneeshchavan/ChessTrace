@@ -1,6 +1,8 @@
+const { Chess } = require('chess.js');
+
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { computeStructuralVector, toPgvectorLiteral } = require('./vector');
+const { computeStructuralVector, sharedStructuralFeatures, toPgvectorLiteral } = require('./vector');
 
 for (const fen of [
   'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -26,4 +28,14 @@ test('material features distinguish an extra white queen', () => {
 
 test('rejects a board missing a king', () => {
   assert.throws(() => computeStructuralVector('8/8/8/8/8/8/8/4K3 w - - 0 1'));
+});
+
+test('structural explanations only report groups with matching vector inputs', () => {
+  const before = computeStructuralVector(new Chess().fen());
+  const after = computeStructuralVector(new Chess().move('e4').after);
+  const features = sharedStructuralFeatures(before, after);
+  assert.equal(features.length, 2);
+  assert.ok(features.some(label => label.includes('Black')));
+  assert.ok(features.some(label => label.includes('material')));
+  assert.ok(features.every(label => !label.includes('White')));
 });

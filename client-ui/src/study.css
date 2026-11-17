@@ -358,3 +358,9 @@
 .account-delete-dialog::backdrop { background: #000a; }
 .ct-danger-button { min-height: 44px; padding: .55rem .75rem; border-radius: .4rem; font-size: .875rem; font-weight: 650; background: var(--ct-danger); color: var(--ct-bg); }
 .ct-danger-button:disabled { opacity: .6; }
+
+.lens-match[data-selected="true"] {
+  border-inline-start: 2px solid var(--ct-accent);
+  padding-inline-start: .65rem;
+  background: color-mix(in srgb, var(--ct-accent) 9%, transparent);
+}

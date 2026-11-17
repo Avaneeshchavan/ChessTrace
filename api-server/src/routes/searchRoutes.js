@@ -3,6 +3,8 @@ const express = require('express');
 const { validateFen } = require('chess.js');
 const { checkSyntacticLegality } = require('../legality');
 const { findExactMatch, findSimilarPositions, findGameReplay, fenCoreToFullFen } = require('../search');
+const { positionKey, replayPositionDetails } = require('../compact-position');
+const { computeStructuralVector, sharedStructuralFeatures } = require('../vector');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { analyzeTwinGame, parseTwinGame } = require('../twin-game');
 
@@ -19,6 +21,23 @@ function getSearchPosition(fen) {
   const legality = checkSyntacticLegality(fenCore);
   if (!legality.legal) return { error: legality.reasons.join(' ') };
   return { fenCore };
+}
+
+async function exactGameCount(prisma, fenCore) {
+  if (process.env.USE_COMPACT_STORAGE === 'true') {
+    const row = await prisma.compactPosition.findUnique({ where: { key: positionKey(fenCore), fenCore }, select: { gamesCount: true } });
+    return Number(row?.gamesCount ?? 0);
+  }
+  const [row] = await prisma.$queryRaw`SELECT count(DISTINCT "gameId") AS count FROM "Position" WHERE "fenCore" = ${fenCore}`;
+  return Number(row.count);
+}
+
+function describeSimilar(fenCore, matches) {
+  const query = computeStructuralVector(fenCoreToFullFen(fenCore));
+  return matches.map(match => {
+    const similarityLabel = match.distance <= .5 ? 'Very similar structure' : match.distance <= 1.5 ? 'Similar structure' : 'Loosely similar structure';
+    return { ...match, similarityLabel, sharedFeatures: sharedStructuralFeatures(query, computeStructuralVector(fenCoreToFullFen(match.fenCore))) };
+  });
 }
 
 function createSearchRouter(prisma = require('../db')) {
@@ -48,7 +67,7 @@ function createSearchRouter(prisma = require('../db')) {
       const matches = await findSimilarPositions(prisma, fenCore, 10, {
         opening: opening.trim(), era: decade ? Number(decade) : null,
       });
-      res.json({ matches: matches.map(({ startFen, ...match }) => {
+      res.json({ replayCount: matches.length, matches: describeSimilar(fenCore, matches).map(({ startFen, ...match }) => {
         const start = startFen?.trim().split(/\s+/);
         const initialMove = Number(start?.[5]) || 1;
         const plies = match.halfMove - 1 + Number(start?.[1] === 'b');
@@ -99,7 +118,13 @@ function createSearchRouter(prisma = require('../db')) {
       const corpusGames = includeCount
         ? await (process.env.USE_COMPACT_STORAGE === 'true' ? prisma.compactGame.count() : prisma.game.count())
         : undefined;
-      res.json({ matches: matches.map(match => ({ ...match, id: String(match.id) })), matchType, fenCore, corpusGames });
+      const matchingGameCount = matchType === 'exact' ? await exactGameCount(prisma, fenCore) : 0;
+      const cache = new Map();
+      const replays = matchType === 'exact' ? matches.map(match => match.positionMove || !match.game?.pgn
+        ? match : { ...match, ...replayPositionDetails(match.game.pgn, match.halfMove, cache) }) : describeSimilar(fenCore, matches);
+      const replayCount = new Set(replays.map(match => match.gameId ?? match.game?.id)).size;
+      res.json({ matches: replays.map(match => ({ ...match, id: String(match.id) })),
+        matchType, fenCore, corpusGames, matchingGameCount, replayCount });
 
       // Fire-and-forget logging
       const authHeader = req.headers.authorization;

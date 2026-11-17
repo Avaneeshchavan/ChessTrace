@@ -71,11 +71,16 @@ test('compact search ranks and caps distinct games, verifies replays and preserv
         const original = await get(query);
         const originalSimilar = await get('/similar' + query);
         assert.equal(original.matches[0].game.id, legacy.id);
+        assert.equal(original.matchingGameCount, 1);
+        assert.equal(original.replayCount, 1);
+        assert.equal(original.matches[0].nextMove, 'Nf6');
 
         process.env.USE_COMPACT_STORAGE = 'true';
         const compact = await get(query);
         assert.deepEqual(keys(compact), keys(original));
         assert.equal(compact.matchType, 'exact');
+        assert.equal(compact.matchingGameCount, 3);
+        assert.equal(compact.replayCount, 2);
         assert.equal(compact.fenCore, fen);
         assert.deepEqual(compact.matches.map(m => m.game.whiteName), ['Strong newer', 'Strong older']);
         for (const match of compact.matches) {
@@ -91,8 +96,22 @@ test('compact search ranks and caps distinct games, verifies replays and preserv
         assert.ok(similar.matches.length);
         assert.deepEqual(keys(similar.matches[0]), keys(originalSimilar.matches[0]));
         assert.equal(similar.matches[0].opening, 'Reti Opening');
-        assert.deepEqual(await get('/similar' + query + '&opening=B22'), { matches: [] });
+        assert.deepEqual(await get('/similar' + query + '&opening=B22'), { matches: [], replayCount: 0 });
 
+        process.env.USE_COMPACT_STORAGE = 'false';
+        await db.$executeRaw`
+          WITH games AS (
+            INSERT INTO "Game" ("whiteName", "blackName", result, pgn)
+            SELECT 'Legacy ' || n, 'Opponent', '1-0', ${older.pgn} FROM generate_series(1, 101) AS n
+            RETURNING id
+          )
+          INSERT INTO "Position" ("gameId", "halfMove", "fenCore")
+          SELECT id, 1, ${fen} FROM games`;
+        const cappedLegacy = await get(query);
+        assert.equal(cappedLegacy.matchingGameCount, 102);
+        assert.equal(cappedLegacy.replayCount, 100);
+
+        process.env.USE_COMPACT_STORAGE = 'true';
         const wrongCore = older.positions[1].fenCore;
         await db.$executeRaw`UPDATE position_game SET ply=2 WHERE key=${key}`;
         assert.equal((await get(query)).matchType, 'similar', 'a bad game link cannot produce an exact hit');

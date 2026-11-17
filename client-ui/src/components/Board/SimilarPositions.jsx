@@ -9,6 +9,7 @@ export function SimilarPositions({ fen }) {
   const [opening, setOpening] = useState('');
   const [era, setEra] = useState('');
   const [matches, setMatches] = useState(null);
+  const [visibleMatches, setVisibleMatches] = useState(5);
   const [replay, setReplay] = useState(null);
   const [loading, setLoading] = useState('');
   const [error, setError] = useState('');
@@ -37,6 +38,7 @@ export function SimilarPositions({ fen }) {
   function search(event) {
     event.preventDefault();
     setMatches(null);
+    setVisibleMatches(5);
     setReplay(null);
     const query = new URLSearchParams({ fen, opening: opening.trim(), era });
     load(`/similar?${query}`, 'search', ({ matches }) => setMatches(matches));
@@ -64,22 +66,24 @@ export function SimilarPositions({ fen }) {
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
       {matches?.length === 0 && <p role="status" className="text-sm">No similar positions matched these filters.</p>}
       {!!matches?.length && <ol className="divide-y divide-slate-200">
-        {matches.map(match => (
-          <li key={match.id}>
+        {matches.slice(0, visibleMatches).map(match => (
+          <li key={match.id} className={replay?.id === match.id ? "rounded bg-slate-100 px-2" : undefined}>
             <button type="button" onClick={() => setReplay(match)} aria-pressed={replay?.id === match.id}
-              className="flex w-full flex-wrap items-center justify-between gap-2 py-3 text-left text-sm hover:bg-slate-50">
+              className="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 py-3 text-left text-sm hover:bg-slate-50">
               <span>
                 <strong>{match.whiteName} vs. {match.blackName}</strong>
                 <span className="block text-xs text-slate-600">
                   {[match.event, match.playedAt?.slice(0, 4), match.opening || match.eco,
-                    `Move ${match.moveNumber}${match.mover === 'black' ? '…' : '.'}`, match.result].filter(Boolean).join(' · ')}
+                    `Move ${match.moveNumber}${match.mover === 'black' ? '…' : '.'}`, match.result, match.nextMove && `Next move: ${match.nextMove}`].filter(Boolean).join(' · ')}
                 </span>
               </span>
-              <span className="text-xs text-sky-800">{Math.round(match.similarity * 100)}% · Replay</span>
+              <span className="text-xs text-sky-800">{match.similarityLabel ? `${match.similarityLabel} · ` : ''}{replay?.id === match.id ? 'Playing' : 'Replay'}</span>
             </button>
+            {!!match.sharedFeatures?.length && <ul className="pb-2 text-xs text-slate-600">{match.sharedFeatures.map(feature => <li key={feature}>{feature}</li>)}</ul>}
           </li>
         ))}
       </ol>}
+      {visibleMatches < (matches?.length ?? 0) && <button type="button" className="ct-quiet" onClick={() => setVisibleMatches(count => count + 5)}>Show more</button>}
       {replay && <GameReplay key={replay.id} match={replay} />}
     </section>
   );
