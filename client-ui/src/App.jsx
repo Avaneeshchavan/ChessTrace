@@ -22,7 +22,7 @@ function ProtectedRoute({ children }) {
   const { token } = useAuth();
   const { pathname, search } = useLocation();
   const online = useOnline();
-  if (token || (!online && pathname === '/sandbox')) return children;
+  if (token || (pathname === '/sandbox' && (!online || new URLSearchParams(search).get('setup') === '1'))) return children;
   if (!online) return <Navigate to="/offline" replace />;
   const share = pathname === '/lens' && new URLSearchParams(search).has('share');
   return <Navigate to="/auth" state={share || pathname === '/settings' ? { returnTo: pathname + search } : undefined} replace />;

@@ -1,31 +1,32 @@
-import { fetchService } from '../config/serviceRequest';
+import { fetchService, wakeScanner } from '../config/serviceRequest';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, AlertTriangle, Search, Loader2, ArrowUpRight, Camera } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { GameReplay } from '../components/Board/GameReplay';
 import { ScreenshotReview } from '../components/Board/ScreenshotReview';
-import ServiceHealthBanner from '../components/ServiceHealthBanner';
-import { useServiceHealth } from '../hooks/useServiceHealth';
 import { useOnline } from '../hooks/useOnline';
 import { takeSharedImage } from '../utils/sharedImage';
 
 import { API_BASE_URL as API_URL, VISION_ENGINE_URL as VISION_URL } from '../config/api';
 
-const sampleFen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+import { sampleBoard, sampleFen, sampleMatches } from '../data/guidedSample';
 
 function replayRecord(match) {
   const game = match.game ?? match;
   return { id: match.id, gameId: match.gameId ?? game.id, halfMove: match.halfMove,
-    whiteName: game.whiteName, blackName: game.blackName };
+    whiteName: game.whiteName, blackName: game.blackName, pgn: match.replayPgn };
 }
 
 export default function OriginLens({ sample = false }) {
   const online = useOnline();
-  const [sampleRun, setSampleRun] = useState(0);
-  const [sampleChecked, setSampleChecked] = useState(false);
-  const { status: visionHealthStatus } = useServiceHealth(VISION_URL);
+  const [walkthrough, setWalkthrough] = useState(sample);
+  const [scanStarted, setScanStarted] = useState(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [scanError, setScanError] = useState(null);
+  const [scanCancelled, setScanCancelled] = useState(false);
+  const lastUpload = useRef(null);
   // Pipeline states
-  const [phase, setPhase] = useState('idle'); // idle | uploading | review | searching | done | error
+  const [phase, setPhase] = useState(sample ? 'done' : 'idle');
   const [dragOver, setDragOver] = useState(false);
   const [params, setParams] = useSearchParams();
   const fileRef = useRef(null);
@@ -34,11 +35,11 @@ export default function OriginLens({ sample = false }) {
   const sharedRequest = useRef(null);
 
   // Vision engine response
-  const [visionResult, setVisionResult] = useState(null);
+  const [visionResult, setVisionResult] = useState(sample ? sampleBoard : null);
 
   // Search response
-  const [searchResult, setSearchResult] = useState(null);
-  const [replay, setReplay] = useState(null);
+  const [searchResult, setSearchResult] = useState(sample ? sampleMatches : null);
+  const [replay, setReplay] = useState(() => sample ? replayRecord(sampleMatches.matches[0]) : null);
   const [visibleMatches, setVisibleMatches] = useState(5);
 
   // Error state
@@ -52,6 +53,12 @@ export default function OriginLens({ sample = false }) {
   }, [previewUrl]);
   useEffect(() => () => requestRef.current?.abort(), []);
 
+  useEffect(() => {
+    if (scanStarted === null) return;
+    const timer = setInterval(() => setElapsed(Math.floor((performance.now() - scanStarted) / 1000)), 250);
+    return () => clearInterval(timer);
+  }, [scanStarted]);
+
   // ---- Upload Handler ----
   const processFile = useCallback(async (file, expectedFen) => {
     if (!file) return;
@@ -59,7 +66,12 @@ export default function OriginLens({ sample = false }) {
     requestRef.current?.abort();
     const request = new AbortController();
     requestRef.current = request;
-    // Show preview
+    lastUpload.current = { file, expectedFen };
+    wakeScanner(VISION_URL);
+    setScanError(null);
+    setScanCancelled(false);
+    setElapsed(0);
+    setScanStarted(performance.now());
     setPreviewUrl(URL.createObjectURL(file));
     setErrorMessage('');
     setSearchResult(null);
@@ -76,7 +88,7 @@ export default function OriginLens({ sample = false }) {
         method: 'POST',
         body: formData,
         signal: request.signal,
-      });
+      }, { timeoutMs: 90_000, skipHealth: true });
 
       if (!visionRes.ok) {
         const errBody = await visionRes.json().catch(() => ({}));
@@ -92,7 +104,9 @@ export default function OriginLens({ sample = false }) {
     } catch (err) {
       if (request.signal.aborted) return;
       setPhase('error');
-      setErrorMessage(err.message || 'Could not analyze the screenshot.');
+      setScanError(err);
+    } finally {
+      if (requestRef.current === request) setScanStarted(null);
     }
   }, []);
 
@@ -149,33 +163,57 @@ export default function OriginLens({ sample = false }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (!sample || !online) return;
-    const controller = new AbortController();
-    async function guide() {
-      setSampleChecked(false);
-      setPhase('uploading');
-      setErrorMessage('');
-      try {
-        const response = await fetch('/product/guided-e4.png', { signal: controller.signal });
-        if (!response.ok) throw new Error('The sample image could not load.');
-        const image = await response.blob();
-        if (controller.signal.aborted) return;
-        // The game record supplies the side to move and castling rights for the sample.
-        const vision = await processFile(new File([image], 'guided-e4.png', { type: 'image/png' }), sampleFen);
-        if (!vision || controller.signal.aborted) return;
-        if (vision.fen !== sampleFen) return;
-        setSampleChecked(true);
-        await searchPosition(sampleFen, true);
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        setPhase('error');
-        setErrorMessage(error.message);
-      }
+  async function scanSample() {
+    wakeScanner(VISION_URL);
+    setWalkthrough(false);
+    setErrorMessage('');
+    setScanError(null);
+    setScanCancelled(false);
+    setPhase('uploading');
+    const request = new AbortController();
+    requestRef.current?.abort();
+    requestRef.current = request;
+    try {
+      const response = await fetch('/product/guided-e4.png', { signal: request.signal });
+      if (!response.ok) throw new Error('The sample image could not load.');
+      const image = await response.blob();
+      if (request.signal.aborted) return;
+      const vision = await processFile(new File([image], 'guided-e4.png', { type: 'image/png' }), sampleFen);
+      if (vision?.fen === sampleFen) await searchPosition(sampleFen, true);
+    } catch (error) {
+      if (request.signal.aborted) return;
+      setPhase('error');
+      setScanError(error);
     }
-    guide();
-    return () => { controller.abort(); requestRef.current?.abort(); };
-  }, [sample, online, sampleRun, processFile, searchPosition]);
+  }
+
+  function showWalkthrough() {
+    requestRef.current?.abort();
+    setWalkthrough(true);
+    setScanStarted(null);
+    setScanError(null);
+    setScanCancelled(false);
+    setErrorMessage('');
+    setPreviewUrl(null);
+    setVisibleMatches(5);
+    setVisionResult(sampleBoard);
+    setSearchResult(sampleMatches);
+    setReplay(replayRecord(sampleMatches.matches[0]));
+    setPhase('done');
+  }
+
+  function cancelScan() {
+    requestRef.current?.abort();
+    setScanStarted(null);
+    setPhase('idle');
+    setScanCancelled(true);
+  }
+
+  function retryScan() {
+    if (!lastUpload.current) { scanSample(); return; }
+    const { file, expectedFen } = lastUpload.current;
+    processFile(file, expectedFen);
+  }
 
   const handleDrop = useCallback((e) => {
     e.preventDefault();
@@ -199,7 +237,7 @@ export default function OriginLens({ sample = false }) {
   }
 
   const uploading = phase === 'uploading';
-  const uploadDisabled = !online || visionHealthStatus === 'waking' || visionHealthStatus === 'error';
+  const uploadDisabled = !online || uploading;
   const confidence = Math.round((visionResult?.theme_match_confidence ?? 0) * 100);
   const games = new Map();
   for (const match of searchResult?.matches ?? []) {
@@ -216,10 +254,9 @@ export default function OriginLens({ sample = false }) {
           : 'Find where a position appeared and replay the games that led to it.'}</p>
         {sample && <Link className="ct-quiet mt-3" to="/">Back to ChessTrace</Link>}
       </header>
-      {!online && <p role="status" className="ct-panel mb-4 p-3 text-sm">Reconnect to scan a screenshot and search the corpus.</p>}
+      {!online && !walkthrough && !scanError && <p role="status" className="ct-panel mb-4 p-3 text-sm">Reconnect to scan a screenshot and search the corpus.</p>}
       <div className="lens-layout">
         <section className="space-y-3 min-w-0" aria-label="Position input">
-          <ServiceHealthBanner url={VISION_URL} label="image scanner" />
           {!sample && <div className="ct-panel lens-upload" data-has-result={!!visionResult}
             onDrop={event => { if (uploadDisabled) event.preventDefault(); else handleDrop(event); }}
             onDragOver={event => { event.preventDefault(); if (!uploadDisabled) setDragOver(true); }}
@@ -233,7 +270,7 @@ export default function OriginLens({ sample = false }) {
             <input ref={fileRef} type="file" aria-label="Board screenshot" accept="image/png,image/jpeg,image/webp"
               className="hidden" onChange={handleFileSelect} />
             <div className="lens-camera">
-              <button type="button" className="ct-quiet" disabled={uploadDisabled} onClick={() => cameraRef.current?.click()}>
+              <button type="button" className="ct-quiet" disabled={uploadDisabled} onClick={() => { wakeScanner(VISION_URL); cameraRef.current?.click(); }}>
                 <Camera size={18} aria-hidden="true" /> Take a photo
               </button>
               <input ref={cameraRef} type="file" aria-label="Camera image" accept="image/*" capture="environment"
@@ -250,7 +287,7 @@ export default function OriginLens({ sample = false }) {
           </div>}
           {sample && <div className="ct-panel lens-upload">
             <ol className="sample-steps" aria-label="Sample progress">
-              <li data-done={!!previewUrl}>1. Screenshot</li>
+              <li data-done={walkthrough || !!previewUrl}>1. Screenshot</li>
               <li data-done={!!visionResult}>2. Board review</li>
               <li data-done={!!searchResult}>3. Match</li>
               <li data-done={!!replay}>4. Replay</li>
@@ -259,13 +296,24 @@ export default function OriginLens({ sample = false }) {
               <img src="/product/guided-e4.png" width="596" height="572" alt="Generated chessboard after White plays e4" />
               {uploading && <span className="lens-scan" aria-hidden="true" />}
             </div>
-            {uploading && <p role="status" className="mt-2 text-sm">Scanning the sample screenshot…</p>}
-            {sampleChecked && <p className="mt-2 text-sm text-slate-500">Piece placement matches the example. The game record supplies Black to move and the castling rights. A flagged square still shows where the scanner was unsure. You can confirm it against the example.</p>}
-            {visionResult && !sampleChecked && <p className="mt-2 text-sm">Review the detected pieces before searching.</p>}
-            {phase === 'error' && online && <button type="button" className="ct-quiet mt-2" onClick={() => setSampleRun(value => value + 1)}>Retry sample</button>}
+            {walkthrough && <p className="mt-2 text-sm">Walkthrough using a prepared board and three saved replays. The game record supplies Black to move and the castling rights.</p>}
+            {walkthrough && <button type="button" className="ct-quiet mt-2" disabled={!online} onClick={scanSample}>Scan it live</button>}
+            {!walkthrough && <button type="button" className="ct-quiet mt-2" onClick={showWalkthrough}>Back to walkthrough</button>}
+            {!walkthrough && visionResult?.fen === sampleFen && <p className="mt-2 text-sm">Piece placement matches the example. Review any flagged squares before searching again.</p>}
           </div>}
 
-          {phase === 'error' && (
+          {(uploading || scanError || scanCancelled) && <div className="ct-panel space-y-2 p-3 text-sm">
+            {uploading && <p role="status">{elapsed >= 3
+              ? `Taking longer than usual (${elapsed} s). The first scan after inactivity can take about a minute.`
+              : 'Reading the board…'}</p>}
+            {uploading && <button type="button" className="ct-quiet" onClick={cancelScan}>Cancel scan</button>}
+            {scanError && <p role="alert">{scanError.message}</p>}
+            {scanCancelled && <p role="status">Scan canceled. Your screenshot is still here.</p>}
+            {!uploading && <button type="button" className="ct-quiet" disabled={!online} onClick={retryScan}>Retry scan</button>}
+            <Link className="ct-quiet" to="/sandbox?setup=1">Set up the board manually</Link>
+          </div>}
+
+          {phase === 'error' && errorMessage && (
             <div role="alert" className="ct-panel flex gap-2 p-3 text-sm text-red-700">
               <AlertTriangle size={18} className="shrink-0" aria-hidden="true" />
               <span>{errorMessage}</span>
@@ -274,9 +322,9 @@ export default function OriginLens({ sample = false }) {
 
           {visionResult && (
             <>
-              <p className="font-mono text-xs text-slate-500">
+              {!walkthrough && <p className="font-mono text-xs text-slate-500">
                 Template fit {confidence}% · {visionResult.orientation === 'black_bottom' ? 'Black' : 'White'} at bottom
-              </p>
+              </p>}
               {visionResult.warnings?.map(warning => {
                 const crop = warning.includes('centered square crop');
                 const orientation = /coordinate labels|manual_orientation/.test(warning);
@@ -291,7 +339,7 @@ export default function OriginLens({ sample = false }) {
                     : <a href={orientation ? '#review-orientation' : '#detected-board'} className="mt-2 inline-block underline">{orientation ? 'Check orientation' : 'Review board'}</a>}
                 </div>;
               })}
-              <ScreenshotReview result={visionResult} searching={phase === 'searching'} offline={!online} onSearch={searchPosition} onEdit={clearSearch} />
+              <ScreenshotReview key={walkthrough ? 'walkthrough' : previewUrl} result={visionResult} searching={phase === 'searching'} offline={!online} onSearch={searchPosition} onEdit={clearSearch} />
             </>
           )}
         </section>
@@ -305,6 +353,7 @@ export default function OriginLens({ sample = false }) {
             </div>
           ) : searchResult ? (
             <>
+              {walkthrough && searchResult === sampleMatches && <p className="mt-2 text-sm">Three example replays</p>}
               {searchResult.matchType === 'exact' && Number.isInteger(searchResult.matchingGameCount) &&
                 <p className="mt-2 font-mono text-xs text-accent">{searchResult.matchingGameCount.toLocaleString()} {searchResult.matchingGameCount === 1 ? 'matching game' : 'matching games'} · {searchResult.replayCount.toLocaleString()} {searchResult.replayCount === 1 ? 'replay available' : 'replays available'}</p>}
               {searchResult.matchType === 'similar' && <p className="my-3 text-sm text-slate-500">

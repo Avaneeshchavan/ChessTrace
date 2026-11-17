@@ -27,7 +27,7 @@ export function useDashboard() {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
-        });
+        }, { accepted: [401] });
         if (res.status === 401) {
           logout();
           throw new Error('Session expired');

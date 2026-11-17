@@ -1,5 +1,8 @@
 import { fetchService } from '../config/serviceRequest';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { ScreenshotReview } from '../components/Board/ScreenshotReview';
 import { Chess, DEFAULT_POSITION } from 'chess.js';
 import { SimilarPositions } from '../components/Board/SimilarPositions';
 import { MoveLedger } from '../components/Board/MoveLedger';
@@ -11,6 +14,9 @@ import { API_BASE_URL } from '../config/api';
 import { useOnline } from '../hooks/useOnline';
 
 export default function Sandbox() {
+  const [params] = useSearchParams();
+  const { token } = useAuth();
+  const [manual, setManual] = useState(params.get('setup') === '1');
   const [fen, setFen] = useState(DEFAULT_POSITION);
   const [moves, setMoves] = useState([]);
   const [moveError, setMoveError] = useState('');
@@ -49,7 +55,7 @@ export default function Sandbox() {
   }
 
   async function search() {
-    if (position.error) return;
+    if (position.error || !token) return;
     const controller = new AbortController();
     request.current?.abort();
     request.current = controller;
@@ -73,6 +79,8 @@ export default function Sandbox() {
         <h1>Sandbox</h1>
         <p>Play through a position, compare matches, and explore the next move.</p>
       </header>
+      {manual ? <ScreenshotReview manual result={{ fen: '8/8/8/8/8/8/8/8 w - - 0 1', squares: [] }}
+        onSearch={value => { changeFen(value); setManual(false); }} /> :
       <div className="sandbox-layout">
         <section className="sandbox-board min-w-0 space-y-4">
           <details className="sandbox-position">
@@ -89,13 +97,15 @@ export default function Sandbox() {
               interactive={!position.error} turnColor={position.chess?.turn() === 'b' ? 'black' : 'white'} viewOnly />
           </div>
           {moveError && <p role="status" className="text-sm text-red-700">{moveError}</p>}
-          <button type="button" onClick={search} disabled={!online || !!position.error || searching}
+          <button type="button" onClick={search} disabled={!token || !online || !!position.error || searching}
             className="ct-button">
             {searching ? 'Searching…' : 'Find matching games'}
           </button>
           {!online && <p className="text-sm text-slate-500">Matching games requires a connection.</p>}
           {searchError && <p role="alert" className="text-sm text-red-700">{searchError}</p>}
-          {result && <p role="status" className="text-sm">{result.matches.length} {result.matchType === 'exact' ? 'exact' : 'similar'} positions found.</p>}
+          {result && <p role="status" className="text-sm">{result.matchType === 'exact' && Number.isInteger(result.matchingGameCount)
+            ? `${result.matchingGameCount.toLocaleString()} matching games · ${result.replayCount.toLocaleString()} replays available`
+            : `${result.replayCount ?? result.matches.length} replays returned`}.</p>}
         </section>
         <section className="space-y-3">
           <div className="ct-panel"><MoveLedger moves={moves} heading="h2" /></div>
@@ -108,8 +118,8 @@ export default function Sandbox() {
             : <p className="rounded bg-slate-100 p-4 text-sm">Stockfish needs a position it can analyze safely. Check the FEN and try again.</p>)}
           {analyzing && position.error && position.engineFen && <p className="text-sm text-slate-600">Stockfish is analyzing with corrected position metadata.</p>}
         </section>
-        {online && !position.error && <div className="sandbox-similar"><SimilarPositions key={position.fen} fen={position.fen} /></div>}
-      </div>
+        {token && online && !position.error && <div className="sandbox-similar"><SimilarPositions key={position.fen} fen={position.fen} /></div>}
+      </div>}
     </main>
   );
 }

@@ -7,7 +7,7 @@ const PIECES = {
   bK: 'Black king', bQ: 'Black queen', bR: 'Black rook', bB: 'Black bishop', bN: 'Black knight', bP: 'Black pawn',
 };
 
-export function ScreenshotReview({ result, searching, offline, onSearch, onEdit }) {
+export function ScreenshotReview({ result, searching, offline, onSearch, onEdit = () => {}, manual = false }) {
   const [squares, setSquares] = useState(() => initialSquares(result));
   const [turn, setTurn] = useState(() => result.fen.split(' ')[1] === 'b' ? 'b' : 'w');
   const [rights, setRights] = useState(() => result.fen.split(' ')[2] || '-');
@@ -35,18 +35,18 @@ export function ScreenshotReview({ result, searching, offline, onSearch, onEdit 
   }
 
   return (
-    <section className="screenshot-review mt-5 rounded-xl bg-white ring-1 ring-slate-200 p-4 space-y-3" aria-label="Review detected position">
+    <section className="screenshot-review mt-5 rounded-xl bg-white ring-1 ring-slate-200 p-4 space-y-3" aria-label={manual ? 'Manual board setup' : 'Review detected position'}>
       <div>
-        <h2 className="font-semibold text-slate-900">Review the detected board</h2>
+        <h2 className="font-semibold text-slate-900">{manual ? 'Set up the position' : 'Review the detected board'}</h2>
         <p className="text-sm text-slate-600">
-          Select a square to correct its piece, or confirm it is right before searching.
+          {manual ? 'Select a square, choose a piece, then set the side to move.' : 'Select a square to correct its piece, or confirm it is right before searching.'}
         </p>
       </div>
-      <div className="review-progress">
+      {!manual && <div className="review-progress">
         <p role="status" className="text-sm font-medium">
           {flagged.length ? `${flagged.length} ${flagged.length === 1 ? 'square needs' : 'squares need'} review` : 'No squares left to review'}
         </p>
-      </div>
+      </div>}
       <div className="review-board relative max-w-md mx-auto">
         <span id="detected-board" />
         <Board fen={fen} orientation={orientation} interactive={false} viewOnly />
@@ -105,7 +105,7 @@ export function ScreenshotReview({ result, searching, offline, onSearch, onEdit 
             <option value="b">Black</option>
           </select>
         </label>
-        <button id="review-orientation" type="button" onClick={flipDetection} className="review-text-action text-sky-800 underline">Reverse detected orientation</button>
+        {!manual && <button id="review-orientation" type="button" onClick={flipDetection} className="review-text-action text-sky-800 underline">Reverse detected orientation</button>}
       </div>
       <details className="text-sm">
         <summary className="cursor-pointer text-slate-600">Castling rights</summary>
@@ -131,7 +131,7 @@ export function ScreenshotReview({ result, searching, offline, onSearch, onEdit 
       {error && <p role="status" className="text-sm text-red-700">{error}</p>}
       <button type="button" disabled={!!error || searching || offline} onClick={() => onSearch(fen)}
         className="ct-button w-full">
-        {searching ? 'Searching…' : 'Search this position'}
+        {manual ? 'Use this position' : searching ? 'Searching…' : 'Search this position'}
       </button>
       {!!flagged.length && <div className="review-dock">
         <button type="button" className="ct-quiet" onClick={() => {
