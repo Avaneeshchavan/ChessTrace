@@ -190,4 +190,15 @@ function toPgvectorLiteral(vec) {
   return `[${vec.map((v) => (Number.isFinite(v) ? v : 0)).join(',')}]`;
 }
 
-module.exports = { computeStructuralVector, toPgvectorLiteral, zoneSquares };
+function sharedStructuralFeatures(query, candidate) {
+  const groups = [
+    [16, 19, 'White’s king has the same pawn shield pattern'],
+    [19, 22, 'Black’s king has the same pawn shield pattern'],
+    [26, 31, 'The material balance by piece type matches'],
+  ];
+  return groups.filter(([start, end]) =>
+    query.slice(start, end).every((value, index) => value === candidate[start + index]))
+    .map(([, , label]) => label);
+}
+
+module.exports = { sharedStructuralFeatures, computeStructuralVector, toPgvectorLiteral, zoneSquares };

@@ -1,3 +1,5 @@
+import { parsePgnComment } from '../../utils/pgnComment';
+
 function annotation(move) {
   if (move.san.endsWith('#')) return 'Checkmate';
   if (move.promotion) return 'Promotion';
@@ -26,11 +28,11 @@ export function MoveLedger({ moves, ply = moves.length, onSelect, comments, head
   }
 
   const comment = ply > 0 && comments?.get(moves[ply - 1]?.after);
+  const parsed = comment && parsePgnComment(comment);
   return (
     <section aria-label="Move list">
-      <div className="flex items-center justify-between px-3 py-2">
+      <div className="px-3 py-2">
         <Heading className="text-sm font-semibold">Move list</Heading>
-        <span className="font-mono text-xs text-slate-500">{moves.length} {moves.length === 1 ? 'half-move' : 'half-moves'}</span>
       </div>
       <div className="move-ledger font-mono text-xs">
         {rows.size ? [...rows.values()].map(row => (
@@ -39,7 +41,13 @@ export function MoveLedger({ moves, ply = moves.length, onSelect, comments, head
           </div>
         )) : <p className="text-slate-500">Play a move to start the list.</p>}
       </div>
-      {comment && <p className="border-t border-slate-200 px-3 py-2 text-sm text-slate-600">{comment}</p>}
+      {parsed?.text && <p className="border-t border-slate-200 px-3 py-2 text-sm text-slate-600">{parsed.text}</p>}
+      {!!parsed?.annotations.length && <details className="px-3 py-2 text-sm">
+        <summary>Move details</summary>
+        <dl>{parsed.annotations.map(({ label, value }, index) => (
+          <div key={index} className="flex gap-2"><dt>{label}</dt><dd className="text-slate-500">{value}</dd></div>
+        ))}</dl>
+      </details>}
     </section>
   );
 }

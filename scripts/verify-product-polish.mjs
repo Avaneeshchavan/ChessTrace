@@ -87,7 +87,7 @@ try {
     await page.screenshot({ path: resolve(output, width + '-landing-crop.png'), scale: 'css' });
     await page.getByRole('link', { name: 'Trace a sample board' }).click();
     const replay = page.getByRole('region', { name: 'Game replay' });
-    await replay.getByText('e4 · 1/4').waitFor();
+    await replay.getByText('1. e4').waitFor();
     await page.getByText('Piece placement matches the example.', { exact: false }).waitFor();
     assert.equal(await page.evaluate(() => localStorage.getItem('token')), null);
     await capture('guided-sample');

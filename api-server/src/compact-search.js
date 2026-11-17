@@ -1,5 +1,5 @@
 const { gunzipSync } = require('node:zlib');
-const { positionKey, verifiesPosition } = require('./compact-position');
+const { positionKey, verifiesPosition, replayPositionDetails } = require('./compact-position');
 const { computeStructuralVector, toPgvectorLiteral } = require('./vector');
 const { storageProfile } = require('../config/storage');
 
@@ -14,7 +14,7 @@ function verifiedRows(rows, project) {
     let pgn;
     try { pgn = gamePgn(row); }
     catch { return []; }
-    return verifiesPosition(pgn, row.halfMove, row.fenCore, cache) ? [project(row, pgn)] : [];
+    return verifiesPosition(pgn, row.halfMove, row.fenCore, cache) ? [{ ...project(row, pgn), ...replayPositionDetails(pgn, row.halfMove, cache) }] : [];
   });
 }
 

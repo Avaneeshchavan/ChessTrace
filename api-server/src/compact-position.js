@@ -9,17 +9,29 @@ function positionKey(fen) {
   return createHash('sha256').update(fenCore(fen)).digest().readBigInt64BE();
 }
 
-function verifiesPosition(pgn, ply, expected, cache) {
+function replayMoves(pgn, cache) {
   if (!cache.has(pgn)) {
     try {
       const chess = new Chess();
       chess.loadPgn(pgn);
-      cache.set(pgn, chess.history({ verbose: true }).map(move => fenCore(move.after)));
+      cache.set(pgn, chess.history({ verbose: true }));
     } catch {
       cache.set(pgn, []);
     }
   }
-  return cache.get(pgn)[ply - 1] === expected;
+  return cache.get(pgn);
 }
 
-module.exports = { fenCore, positionKey, verifiesPosition };
+function verifiesPosition(pgn, ply, expected, cache) {
+  const move = replayMoves(pgn, cache)[ply - 1];
+  return Boolean(move && fenCore(move.after) === expected);
+}
+
+function replayPositionDetails(pgn, ply, cache) {
+  const moves = replayMoves(pgn, cache);
+  const current = moves[ply - 1];
+  if (!current) return { nextMove: null, positionMove: null };
+  return { nextMove: moves[ply]?.san ?? null, positionMove: Number(current.before.split(' ')[5]) };
+}
+
+module.exports = { fenCore, positionKey, verifiesPosition, replayPositionDetails };

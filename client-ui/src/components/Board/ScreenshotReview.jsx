@@ -48,6 +48,7 @@ export function ScreenshotReview({ result, searching, offline, onSearch, onEdit 
         </p>
       </div>
       <div className="review-board relative max-w-md mx-auto">
+        <span id="detected-board" />
         <Board fen={fen} orientation={orientation} interactive={false} viewOnly />
         <div className="absolute inset-0 grid grid-cols-8 grid-rows-8" role="group" aria-label="Editable chess squares. Use arrow keys to move between squares.">
           {display.map((key, index) => {
@@ -104,7 +105,7 @@ export function ScreenshotReview({ result, searching, offline, onSearch, onEdit 
             <option value="b">Black</option>
           </select>
         </label>
-        <button type="button" onClick={flipDetection} className="review-text-action text-sky-800 underline">Reverse detected orientation</button>
+        <button id="review-orientation" type="button" onClick={flipDetection} className="review-text-action text-sky-800 underline">Reverse detected orientation</button>
       </div>
       <details className="text-sm">
         <summary className="cursor-pointer text-slate-600">Castling rights</summary>
