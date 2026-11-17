@@ -87,7 +87,7 @@ Use Node.js 22.12 or newer, Python with virtual environment support, and a Postg
 | Area | Result |
 | --- | --- |
 | Search benchmark | On a temporary Neon corpus of 1,000 games and 79,855 positions, PostgreSQL execution p95 was **0.500 ms exact** and **0.449 ms approximate** across 1,000 lookups. These timings exclude the network and API. |
-| Board recognition | On 108 synthetic boards, the detector reached **99.71% per-square accuracy** and **90.74% exact piece placement**. Real screenshot accuracy has yet to be measured. |
+| Board recognition | After adding Cases support, the detector recovered **15 of 15 exact piece placements** on the same supplied screenshot batch that exposed the missing piece set. [Scope and before/after results](docs/m8/vision-real.md). |
 | Landing and Settings | See the [M8 Lighthouse results](docs/m8/README.md) for the current local build and test scope. |
 
 Run `npm test` in `api-server/`, `npm run build` in `client-ui/`, and `python tests/test_pipeline.py` plus `python tests/test_detect.py` in `vision-engine/`.

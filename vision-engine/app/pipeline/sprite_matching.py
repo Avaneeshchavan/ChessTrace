@@ -17,6 +17,7 @@ SPRITE_THEMES = {
     "chesscom_neo_wood": ("neo_wood", "brown"),
     "chesscom_neon": ("neon", "neon"),
     "chesscom_wood": ("wood", "dark_wood"),
+    "chesscom_cases": ("cases", "icy_sea"),
 }
 CODES = [side + kind for side in "wb" for kind in "KQRBNP"]
 ROOT = Path(__file__).resolve().parents[2] / "templates"

@@ -45,7 +45,7 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 - PNG template sets: classic, neo_wood, neon and wood, using local square background matching.
 - `POST /detect` and `POST /parse-screenshot`: per-square scores and review flags, with bounded in-memory uploads. Both endpoint contract tests passed.
 - Headless Chrome: real upload, flagged-square correction, invalid-position guard, and explicit search with the corrected FEN verified. The search response was mocked for this UI test; live search was checked separately.
-- [VISION_EVAL.md](VISION_EVAL.md): 108 synthetic boards; 99.71% per square, 90.74% exact placement, 0% exact six-field FEN. Real screenshots are not yet evaluated.
+- [VISION_EVAL.md](VISION_EVAL.md): 108 synthetic boards; 99.71% per square, 90.74% exact placement, 0% exact six-field FEN. The later M8 follow-up covers the supplied real screenshots.
 
 
 ## B5 features
@@ -93,4 +93,4 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 
 - Implemented the guest guided sample, count-aware search results, shared offline states, keyboard board controls, About and Privacy pages, and password-confirmed account deletion.
 - Verified against a disposable database, the local image scanner, and Chromium at 390px and 1280px. The sample's exact corpus matches and first replay were separately verified on Neon using read-only queries.
-- [M8 verification](m8/README.md) records browser evidence, corpus size, Lighthouse, and the synthetic evaluation. Real screenshot accuracy is not measured because the private labeled dataset is missing. Production rollout and M9 are pending.
+- [M8 verification](m8/README.md) records browser evidence, corpus size, Lighthouse, and the synthetic evaluation. The [real screenshot follow-up](m8/vision-real.md) measured 15 Cases screenshots before and after adding the missing templates. Production rollout and M9 are pending.

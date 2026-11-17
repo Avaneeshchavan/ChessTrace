@@ -20,9 +20,9 @@ The [synthetic screenshots](screenshots) include landing viewport crops, the gue
 
 ## Vision evaluation
 
-**Real screenshot accuracy was not measured.** The private CSV and its image directory were absent. The 108-board [synthetic run](vision-synthetic.md) measured 90.74% exact placement and 99.71% per-square accuracy. Review flags covered 17 of 20 wrong squares, so the sample needed 20 piece corrections. The run uses rendered boards with orientation supplied to the detector. Its per-piece results apply to that synthetic dataset.
+The [real screenshot evaluation](vision-real.md) measured 15 privately supplied Chess.com Cases boards before and after adding Cases templates. Exact placement improved from **0/15 to 15/15** on this batch. The [initial synthetic run](vision-synthetic.md) used rendered boards with orientation supplied to the detector.
 
-To run the private benchmark, place the labeled screenshots under `vision-engine/tests/eval/images/` and a CSV with `image,expected_fen,orientation` at `vision-engine/tests/eval/manifest.csv`. Both paths are ignored by Git. Use a verified FEN for each image. Leave orientation blank to measure automatic orientation detection. From `vision-engine/` run:
+To run the private benchmark, place the labeled screenshots under `vision-engine/tests/eval/images/` and a CSV with `image,expected_fen,orientation` at `vision-engine/tests/eval/manifest.csv`. Both paths are ignored by Git. Use independently verified piece placement or a full six-field FEN for each image. Leave orientation blank to measure automatic orientation detection. From `vision-engine/` run:
 
 ```sh
 python tests/eval/evaluate.py --manifest tests/eval/manifest.csv --images tests/eval/images --output /tmp/chesstrace-real-eval.md

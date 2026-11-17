@@ -65,7 +65,7 @@ def synthetic_cases(per_size):
                 ok, encoded = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, rng.randint(72, 94)])
                 if not ok:
                     raise ValueError("Could not JPEG encode the synthetic board")
-                yield f"{theme}/{side}", board, encoded.tobytes(), "black_bottom" if flipped else "white_bottom"
+                yield f"{theme}/{side}", board, encoded.tobytes(), "black_bottom" if flipped else "white_bottom", True
 
 
 def real_cases(manifest, image_root):
@@ -78,18 +78,22 @@ def real_cases(manifest, image_root):
             orientation = row.get("orientation") or None
             if orientation not in (None, "white_bottom", "black_bottom"):
                 raise ValueError(f"Invalid orientation: {orientation}")
-            yield "Real CSV", chess.Board(row["expected_fen"]), path.read_bytes(), orientation
+            fen = row["expected_fen"].strip()
+            fields = fen.split()
+            if len(fields) not in (1, 6):
+                raise ValueError("Expected FEN must contain piece placement alone or all six fields")
+            yield "Real CSV", chess.Board(fen), path.read_bytes(), orientation, len(fields) == 6
 
 
 def evaluate(cases):
     groups = defaultdict(Counter)
     errors = Counter()
-    for label, board, data, orientation in cases:
+    for label, board, data, orientation, full_fen_known in cases:
         expected = {chess.square_name(key): piece.symbol() for key, piece in board.piece_map().items()}
         try:
             result = detect_bytes(data, manual_orientation=orientation)
         except HTTPException:
-            stats = Counter(boards=1, failed=1)
+            stats = Counter(boards=1, failed=1, full_fen_labels=int(full_fen_known))
             for square in chess.SQUARE_NAMES:
                 target = expected.get(square, ".")
                 stats[f"total:{target}"] += 1
@@ -97,7 +101,8 @@ def evaluate(cases):
             groups[label].update(stats)
             continue
         stats = Counter(boards=1, placements=int(result.piece_placement_field == board.board_fen()),
-                        full=int(result.fen == board.fen(en_passant="fen")), valid=int(result.fen_valid))
+                        full_fen_labels=int(full_fen_known),
+                        full=int(full_fen_known and result.fen == board.fen(en_passant="fen")), valid=int(result.fen_valid))
         for square in result.squares:
             symbol = square.piece
             actual = (symbol[1] if symbol[0] == "w" else symbol[1].lower()) if symbol else "."
@@ -124,7 +129,7 @@ def report(groups, errors, synthetic):
         "The synthetic set measures rendered boards with known sprites and supplied orientation; it does not establish real screenshot accuracy."
         if synthetic else "Real results describe only the images in the supplied manifest.",
         "",
-        f"Synthetic settings: seed {SEED}, board sizes {', '.join(map(str, SIZES))} px before slight scaling, JPEG quality 72–94, four piece/board pairs."
+        f"Synthetic settings: seed {SEED}, board sizes {', '.join(map(str, SIZES))} px before slight scaling, JPEG quality 72–94, {len(SPRITE_THEMES)} piece/board pairs."
         if synthetic else "The optional CSV orientation column overrides OCR; omitted values use the normal detection path.",
         "",
         "| Set / board px | Boards | Per-square | Exact placement | Exact full FEN | Valid FEN |",
@@ -133,9 +138,9 @@ def report(groups, errors, synthetic):
     for label, stats in [*groups.items(), ("Overall", total)]:
         n = stats["boards"]
         lines.append(f"| {label} | {n} | {pct(stats['correct'], n*64)} | {pct(stats['placements'], n)} | "
-                     f"{pct(stats['full'], n)} | {pct(stats['valid'], n)} |")
+                     f"{pct(stats['full'], stats['full_fen_labels'])} | {pct(stats['valid'], n)} |")
     lines += [
-        "", "Per-square includes empty squares. Exact placement compares all 64 squares. Exact full FEN compares all six fields to the true game state; a still image cannot recover clocks, en passant, the turn, or historical castling rights.",
+        "", "Per-square includes empty squares. Exact placement compares all 64 squares. Exact full FEN uses only cases with six-field ground truth. A still image cannot establish clocks, en passant, the turn, or historical castling rights.",
         f"Review flags marked {total['flagged']} squares and covered {total['flagged_errors']} of {sum(errors.values())} wrong squares.",
         f"Review-flag coverage was {pct(total['flagged_errors'], sum(errors.values()))}. "
         f"Decoded boards needed {sum(n for (_, actual), n in errors.items() if actual != 'no prediction')} square corrections. "
