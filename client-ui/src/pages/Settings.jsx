@@ -37,7 +37,7 @@ export default function Settings() {
       try {
         const res = await fetchService(API_BASE_URL, `/api/users/me/summary`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-        });
+        }, { accepted: [401] });
         if (res.status === 401) {
           logout();
           throw new Error('Session expired');
@@ -124,7 +124,7 @@ export default function Settings() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ currentPassword, newPassword })
-      });
+      }, { accepted: [401] });
 
       if (!res.ok) {
         const err = await res.json();
@@ -157,9 +157,9 @@ export default function Settings() {
 
         {/* SECTION 1: Account Summary */}
         <div className="bg-white rounded-xl shadow-sm p-6 ring-1 ring-slate-900/5">
-          {status === 'waking' || status === 'checking' ? (
+          {status === 'checking' ? (
             <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
-              <div className="animate-pulse font-medium">Waiting for servers to wake up...</div>
+              <div className="animate-pulse font-medium">Checking the server connection…</div>
             </div>
           ) : status === 'error' ? (
             <p role="alert" className="text-sm text-red-700">The account service is unavailable. Use Retry above to reconnect.</p>

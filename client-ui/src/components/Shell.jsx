@@ -72,7 +72,7 @@ export function Shell() {
       <div className="study-content" id="study-main" tabIndex={-1} ref={main}>
         {online ? <ServiceHealthBanner url={API_BASE_URL} />
           : <div className="study-health" role="status">You’re offline. <Link className="underline" to="/offline">See what’s available</Link></div>}
-        {online || pathname === '/sandbox' ? <Outlet /> : (
+        {online || pathname === '/sandbox' || pathname === '/lens' ? <Outlet /> : (
           <main className="ct-workspace ct-offline-page">
             <header className="ct-workspace-header">
               <h1>ChessTrace is offline</h1>

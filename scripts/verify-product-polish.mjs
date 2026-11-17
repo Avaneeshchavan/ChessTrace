@@ -88,7 +88,7 @@ try {
     await page.getByRole('link', { name: 'Trace a sample board' }).click();
     const replay = page.getByRole('region', { name: 'Game replay' });
     await replay.getByText('1. e4').waitFor();
-    await page.getByText('Piece placement matches the example.', { exact: false }).waitFor();
+    await page.getByText(/Walkthrough using a prepared board/).waitFor();
     assert.equal(await page.evaluate(() => localStorage.getItem('token')), null);
     await capture('guided-sample');
     const a8 = page.getByRole('button', { name: /^a8: Black rook/ });

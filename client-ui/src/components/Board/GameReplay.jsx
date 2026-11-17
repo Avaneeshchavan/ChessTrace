@@ -15,9 +15,11 @@ export function GameReplay({ match }) {
     const controller = new AbortController();
     async function load() {
       try {
-        const response = await fetchService(API_BASE_URL, `/api/search/games/${match.gameId}`, { signal: controller.signal });
-        if (!response.ok) throw new Error('The game is unavailable for replay.');
-        const { pgn } = await response.json();
+        let pgn = match.pgn;
+        if (!pgn) {
+          const response = await fetchService(API_BASE_URL, `/api/search/games/${match.gameId}`, { signal: controller.signal });
+          ({ pgn } = await response.json());
+        }
         const chess = new Chess();
         chess.loadPgn(pgn);
         const moves = chess.history({ verbose: true });
@@ -33,7 +35,7 @@ export function GameReplay({ match }) {
     }
     load();
     return () => controller.abort();
-  }, [match.gameId, match.halfMove]);
+  }, [match.gameId, match.halfMove, match.pgn]);
 
   if (error) return <p role="alert" className="text-sm text-red-700">{error}</p>;
   if (!data) return <div role="status" className="space-y-2"><p className="text-sm text-slate-500">Loading replay…</p><div className="ct-skeleton aspect-square max-w-md" /></div>;

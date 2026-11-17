@@ -61,8 +61,8 @@ export default function PatternVault() {
       if (status !== 'awake') return;
       try {
         const [vaultRes, reviewRes, statsRes] = await Promise.all([
-          fetchService(API_BASE_URL, `/api/vault`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }),
-          fetchService(API_BASE_URL, `/api/vault/review-queue`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetchService(API_BASE_URL, `/api/vault`, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } }, { accepted: [401] }),
+          fetchService(API_BASE_URL, `/api/vault/review-queue`, { headers: { 'Authorization': `Bearer ${token}` } }, { accepted: [401] }),
           fetchService(API_BASE_URL, `/api/vault/review-stats`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
         ]);
         
@@ -171,9 +171,9 @@ export default function PatternVault() {
         </div>
       )}
 
-      {status === 'waking' || status === 'checking' ? (
+      {status === 'checking' ? (
         <div className="flex flex-col items-center justify-center h-64 text-[var(--ct-accent)]">
-          <div className="animate-pulse font-medium">Waiting for servers to wake up...</div>
+          <div className="animate-pulse font-medium">Checking the server connection…</div>
         </div>
       ) : status === 'error' ? (
         <p role="alert" className="text-sm text-red-700">The vault is temporarily unavailable. Reload to retry.</p>

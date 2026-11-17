@@ -16,3 +16,5 @@ These paired Chromium captures used identical local responses for the scanner, s
 The browser assertions cover viewport overflow, five initially visible results, expanding the list, the active replay, the fallback warning, the sample's explanation of its flagged square, and the absence of raw PGN markup in the replay. Qualitative similarity labels describe distance bands, and the shared-feature text checks the same vector dimensions used by scoring.
 
 To regenerate, build the tagged client as a baseline and the R1 client as `client-ui/dist`. Set `R1_BASELINE` to the baseline build directory and run `node scripts/verify-r1.mjs` with Playwright and Chromium installed. Set `PLAYWRIGHT_PACKAGE` or `CHROME_PATH` if needed.
+
+R1 merged to `main` at `e56f571`. The public staged and promoted API returned 386 distinct matches and 25 replays for the sample position. Vercel assigned the client from the merge commit. The public read-only verifier passed all 11 checks. The previous public deployments are recorded in the [MVP release record](../RELEASE_MVP.md).

@@ -26,9 +26,9 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [accountDeleted] = useState(() => sessionStorage.getItem('chesstrace-account-deleted') === '1');
   useEffect(() => { sessionStorage.removeItem('chesstrace-account-deleted'); }, []);
-  const connecting = status === 'waking' || status === 'checking';
+  const connecting = status === 'checking';
   const showConnectionError = status === 'error' && !error;
-  const showConnecting = !error && (status === 'waking' || (loading && connecting));
+  const showConnecting = !error && loading && connecting;
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -51,7 +51,7 @@ export default function Auth() {
       navigate(destination, { replace: true });
     } catch (err) {
       if (err instanceof ServiceRequestInterruptedError) {
-        setError(isLogin
+        setError(err.kind === 'timeout' ? err.message : isLogin
           ? 'Sign-in was interrupted. Try again in a moment.'
           : 'Signup was interrupted. Try signing in with the same details before submitting again.');
       } else if (!(err instanceof ServiceUnavailableError)) {
@@ -100,7 +100,7 @@ export default function Auth() {
             {online && showConnecting && (
               <div className="auth-status" role="status">
                 <Loader2 size={17} className="animate-spin" aria-hidden="true" />
-                <div><strong>Connecting to ChessTrace</strong><p>The server may take about a minute to wake up.</p></div>
+                <div><strong>Connecting to ChessTrace</strong><p>Checking the connection.</p></div>
               </div>
             )}
             {online && showConnectionError && (

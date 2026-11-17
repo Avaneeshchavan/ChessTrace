@@ -63,6 +63,6 @@ Before switching the frontend, the November 12, 2026 verifier passed against the
 
 ## Production source branch
 
-Use `main` as the production branch in both Vercel projects. In each dashboard project (`chesstrace` and `chesstrace-express`), open **Settings → Environments → Production** and set the branch tracking rule to `main`. If a project has no Git repository connected, use **Settings → Git** to connect the ChessTrace repository first and check the project root (`client-ui` for the frontend, `api-server` for a repository-linked API). Review pending Git deployments before changing the rule. [Vercel Git deployments](https://vercel.com/docs/git)
+Both Vercel projects now track `main` on the ChessTrace Git repository. The frontend root is `client-ui` and the API root is `api-server`. In each dashboard project (`chesstrace` and `chesstrace-express`), open **Settings → Environments → Production** and set the branch tracking rule to `main`. If a project has no Git repository connected, use **Settings → Git** to connect the ChessTrace repository first and check the project root (`client-ui` for the frontend, `api-server` for a repository-linked API). Review pending Git deployments before changing the rule. [Vercel Git deployments](https://vercel.com/docs/git)
 
 Render vision uses manual releases and the last verified live commit in the release handoff is `05face9`. Its linked M4 branch is historical. Use **Manual Deploy → Deploy a specific commit** for reviewed vision changes. See the [release checklist](RELEASE_PROCESS.md).

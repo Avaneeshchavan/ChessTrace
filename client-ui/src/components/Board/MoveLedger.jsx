@@ -28,7 +28,7 @@ export function MoveLedger({ moves, ply = moves.length, onSelect, comments, head
   }
 
   const comment = ply > 0 && comments?.get(moves[ply - 1]?.after);
-  const parsed = comment && parsePgnComment(comment);
+  const parsed = comment ? parsePgnComment(comment) : null;
   return (
     <section aria-label="Move list">
       <div className="px-3 py-2">
