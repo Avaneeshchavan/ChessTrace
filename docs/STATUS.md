@@ -101,3 +101,9 @@ See [MIGRATIONS.md](MIGRATIONS.md) for exact Neon commands and baseline handling
 - [Final audit](m9/README.md) records the client build, API and vision tests, read-only production checks, Lighthouse, dependency audit, and mobile and desktop captures.
 - [Scale-up runbook](SCALE_UP.md) and [free Oracle steps](CODEX_PROMPTS_ZERO_COST.md#2-provision-an-always-free-vm) document how to rehearse a larger PostgreSQL setup. The hosted scale path was not exercised.
 - The audit checked the existing deployment. The M9 scanner and UI still need rollout, the `0005_puzzle_attempts` migration remains pending on Neon, and hosted signup and puzzle writes were not measured.
+
+## MVP release follow-up
+
+- The tested `v0.1.0-mvp-rc.1` source shipped to the existing Vercel client and API and Render scanner. Neon now reports all six migrations current.
+- The promoted API passed signup, login, saving a puzzle, recording and safely retrying an attempt, applying an SM-2 rating, and checking both motif histories. The disposable account was removed.
+- See the [production release record](RELEASE_MVP.md) for exact scope and remaining checks. The [Claude handoff](CLAUDE_HANDOFF.md) reconciles M0–M9 and gives a prioritized review assignment.
